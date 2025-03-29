@@ -1,0 +1,17 @@
+coreferee==1.4.1
+datasets==2.14.7
+en_core_web_sm==3.7.0
+jsonlines==4.0.0
+matplotlib==3.10.1
+networkx==3.2.1
+nltk==3.9.1
+numpy==2.2.4
+pandas==2.2.3
+peft==0.15.1
+relik==1.0.7
+scikit_learn==1.6.1
+spacy==3.7.5
+torch==2.3.1+cu121
+tqdm==4.67.1
+transformers==4.47.1
+vllm==0.5.3
