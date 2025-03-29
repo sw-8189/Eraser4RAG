@@ -1,0 +1,205 @@
+import os
+import argparse
+import torch
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+import json
+from tqdm import tqdm, trange
+from torch.utils.data import DataLoader, Dataset
+import logging
+import random
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
+class PromptDataset(Dataset):
+    def __init__(self, args, tokenizer, data):
+        self.examples = []
+        for record in data:
+            prompt_groups, public, privacy, ctxs = format_prompt(record, args)
+            prompt_ids = tokenizer(prompt_groups, return_tensors="pt", padding=True, max_length=1300, truncation=True)
+            if "qa" in record.keys():
+                if len(record["qa"])==0:
+                    continue
+                new_example = {"question": record["qa"][0]["question"], "answers": record["qa"][0]["answer"], "public": public, "privacy": privacy, "prompts": prompt_ids,"ctxs": ctxs}
+            else:
+                new_example = {"question": record["question"], "answers": record["answers"], "public": public, "privacy": privacy, "prompts": prompt_ids,"ctxs": ctxs}
+            self.examples.append(new_example)
+
+    def __len__(self):
+        return len(self.examples)
+
+    def __getitem__(self, item):
+        return self.examples[item]
+
+    @staticmethod
+    def get_collate_fn(args):
+        def collate_fn(batch: list):
+            collated_dict = {"question": [],
+                             "answers": [],
+                             "public": [],
+                             "privacy": [],
+                             "ctxs": [],
+                             "prompts": []}
+            for example in batch:
+                collated_dict["question"].append(example["question"])
+                collated_dict["answers"].append(example["answers"])
+                collated_dict["privacy"].append(example["privacy"])
+                collated_dict["public"].append(example["public"])
+                collated_dict["ctxs"].append(example["ctxs"])
+                collated_dict["prompts"].append(example["prompts"])
+
+            return collated_dict
+
+        return collate_fn
+
+
+def replace_pri_tags(text):
+    text = text.replace('<subj>', '<rsubj>')
+    text = text.replace('<rel>', '<rrel>')
+    text = text.replace('<obj>', '<robj>')
+    text = text.replace('<e>', '<re>')
+    return text
+
+def replace_pub_tags(text):
+    text = text.replace('<subj>', '<csubj>')
+    text = text.replace('<rel>', '<crel>')
+    text = text.replace('<obj>', '<cobj>')
+    text = text.replace('<e>', '<ce>')
+    return text
+
+
+def format_prompt(data_each, args):
+    input_prompts = []
+    input_privacy = []
+    input_public = []
+    input_ctxs = []
+    sys_prompt = '''Rewrite the given text to remove or generalize only the private relations and their tail entities from the provided private triples 
+                            while preserving all head entities, ensuring the text retains relevant public information and any details not mentioned in the triples.'''
+    if args.use_prefix:
+        public = "\n\npublic triples: "
+        private = "\n\nprivacy triples: "
+        text = "\n\ntext: "
+    else:
+        public = ""
+        private = ""
+        text = ""
+    
+    public_trps = data_each["public"]
+    for trp in public_trps:  
+        input_public.append("<subj>{}<rel>{}<obj>{}<e>".format(trp[0], trp[1], trp[2]))
+        if args.pri_each==False:
+            public = public + "<csubj>{}<crel>{}<cobj>{}<ce>".format(trp[0], trp[1], trp[2])
+
+    private_trps = data_each["privacy"]
+    for trp in private_trps:  
+        input_privacy.append("<subj>{}<rel>{}<obj>{}<e>".format(trp[0], trp[1], trp[2]))
+        if args.pri_each==False:
+            private = private + "<rsubj>{}<rrel>{}<robj>{}<re>".format(trp[0], trp[1], trp[2])
+    if args.pri_each==False:
+        for ctx in data_each["ctxs"]:
+            input_ctxs.append(ctx["text"])
+            doc_text = text + ctx["text"]
+            input_text = sys_prompt + doc_text + private + public+ "**Anonymized Text**:"  #public+ 
+            input_prompts.append(input_text)
+        return input_prompts,input_public, input_privacy, input_ctxs
+    else:
+        for ctx in data_each["ctxs"]:
+            if args.use_prefix:
+                public = "\n\npublic triples: "
+                private = "\n\nprivacy triples: "
+                text = "\n\ntext: "
+            else:
+                public = ""
+                private = ""
+                text = ""
+            public_trps = ctx["public"]
+            private_trps = ctx["private"]
+            for trp in public_trps:
+                public = public + replace_pub_tags(trp)
+            for trp in private_trps:
+                private = private + replace_pri_tags(trp)
+            input_ctxs.append(ctx["text"])
+            doc_text = text + ctx["text"]
+            input_text = sys_prompt + doc_text + private + public+ "**Anonymized Text**:"
+            input_prompts.append(input_text)
+        return input_prompts,input_public, input_privacy, input_ctxs
+
+
+
+
+def load_data(data_path):
+    if data_path.endswith(".json"):
+        with open(data_path, "r") as fin:
+            data = json.load(fin)
+    elif data_path.endswith(".jsonl"):
+        data = []
+        with open(data_path, "r") as fin:
+            for k, example in enumerate(fin):
+                example = json.loads(example)
+                data.append(example)
+    return data
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_dir", type=str,
+                        default="dataset/sample_privacy/popqa_10_25_inferattack.jsonl")
+    parser.add_argument("--model_dir", type=str, default="./output_checkpoint/RL/step_3300")
+    parser.add_argument("--output_dir", type=str, default="./output_anonymized_ctxs/popqa_10_25_inferattack.json")
+    parser.add_argument("--max_passage_length", type=int, default=128)
+    parser.add_argument("--batch_size", type=int, default=1)
+    parser.add_argument("--use_prefix", type=bool, default=True)
+    parser.add_argument("--pri_each", type=bool, default=False)
+    args = parser.parse_args()
+
+    # pytorch parallel gpu
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    args.device = device
+
+    return args
+
+
+if __name__ == "__main__":
+    args = get_args()
+
+    logger.info("Loading Flan-T5 rewrite model...")
+    tokenizer = AutoTokenizer.from_pretrained('./flan-t5-large')
+    model = AutoModelForSeq2SeqLM.from_pretrained(args.model_dir).to(args.device)
+    model.eval()
+    logger.info("Loading QA dataset with docs to rewrite...")
+    qa_data = load_data(args.data_dir)
+    random.seed(42)
+    qa_prompt_dataset = PromptDataset(args, tokenizer,qa_data) 
+    qa_prompt_loader = DataLoader(qa_prompt_dataset,
+                                  batch_size=args.batch_size,
+                                  shuffle=True,
+                                  collate_fn=qa_prompt_dataset.get_collate_fn(args))
+
+    output_path = args.output_dir
+    with torch.no_grad():
+        with open(output_path, "w") as fout:
+            for i, batch in enumerate(qa_prompt_loader):
+                if i % 20 == 0:
+                    logger.info("Processed {}/{}".format(i*args.batch_size, len(qa_prompt_dataset)))
+                bt_prompts = batch['prompts']
+                bt_rewritten_docs = []
+                for prompts in bt_prompts:
+                    prompts = prompts.to(args.device)
+                    outputs = model.generate(**prompts, max_length=args.max_passage_length)
+                    rewritten_docs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+                    bt_rewritten_docs.append(rewritten_docs)
+                for k in range(args.batch_size):
+                    new_data = dict(question=batch["question"][k],
+                                    answers=batch["answers"][k],
+                                    private=batch["privacy"][k],
+                                    public=batch["public"][k],
+                                    ctxs=batch["ctxs"][k],
+                                    anonymized_ctxs=bt_rewritten_docs[k])
+                    json.dump(new_data, fout, ensure_ascii=False)
+                    fout.write("\n")
+                del prompts
+                del outputs
+                torch.cuda.empty_cache()
+
+
+
