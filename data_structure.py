@@ -1,9 +1,53 @@
-import torch
-from torch.utils.data import DataLoader, Dataset, TensorDataset, IterableDataset
 import json
 import random
-from tqdm import tqdm, trange
-from transformers import InputExample
+
+from torch.utils.data import Dataset
+from tqdm import tqdm
+
+try:
+    from utils.triple_utils import (
+        serialize_private_prompt_triple,
+        serialize_public_prompt_triple,
+    )
+except (ImportError, ModuleNotFoundError):
+    # Compatibility fallback while the shared v2 utility is being introduced.
+    def serialize_public_prompt_triple(triple):
+        return "<csubj>{}<crel>{}<cobj>{}<ce>".format(triple[0], triple[1], triple[2])
+
+    def serialize_private_prompt_triple(triple):
+        return "<rsubj>{}<rrel>{}<robj>{}<re>".format(triple[0], triple[1], triple[2])
+
+
+def load_jsonl(filename):
+    records = []
+    with open(filename, "r", encoding="utf-8") as fin:
+        for line_number, line in enumerate(fin, start=1):
+            if not line.strip():
+                continue
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"invalid JSON on line {line_number} of {filename}") from exc
+    return records
+
+
+def select_records(records, args):
+    use_data_percent = getattr(args, "use_data_percent", 1.0)
+    if not 0 < use_data_percent <= 1:
+        raise ValueError("use_data_percent must be in (0, 1]")
+
+    requested = int(len(records) * use_data_percent)
+    max_samples = getattr(args, "max_samples", None)
+    if max_samples is not None:
+        if max_samples <= 0:
+            raise ValueError("max_samples must be positive")
+        requested = min(requested, max_samples)
+
+    if requested >= len(records):
+        return list(records)
+    rng = random.Random(getattr(args, "seed", 42))
+    indices = sorted(rng.sample(range(len(records)), requested))
+    return [records[index] for index in indices]
 
 
 def padding_seq_to_same_length(input_ids, max_pad_length, pad_token=0):
@@ -27,18 +71,8 @@ def padding_seq_to_same_length(input_ids, max_pad_length, pad_token=0):
 class Anonymize_Doc_popqa(Dataset):
     def __init__(self, args, tokenizer, filename):
         self.examples = []
-        data = []
-        with open(filename, "r") as fin:
-            for k, example in enumerate(fin):
-                example = json.loads(example)
-                data.append(example)
-        n = len(data)
-        n = int(args.use_data_percent * n)
-        # randomly sample n samples for debugging
-        if n < len(data):
-            random.seed(args.seed)
-            data = random.sample(data, n)
-        sys_prompt = '''Rewrite the given text to relace only the private tail entities with the corresponding relations from the provided private triples 
+        data = select_records(load_jsonl(filename), args)
+        sys_prompt = '''Rewrite the given text to replace only the private tail entities with the corresponding relations from the provided private triples
                         while preserving all head entities, closely mirroring the original text, ensuring the text retains relevant public information and any details not mentioned in the triples.'''
         for record in tqdm(data):
             if args.use_prefix:
@@ -50,17 +84,12 @@ class Anonymize_Doc_popqa(Dataset):
                 private = ""
                 text = ""
             public_trps = record["public"]
-            # tik = 0
-            for trp in public_trps:  # 105
-                # if tik == 85:
-                #     break
-                # tik += 1
-                public = public + "<csubj>{}<crel>{}<cobj>{}<ce>".format(trp[0], trp[1], trp[2])
+            for trp in public_trps:
+                public += serialize_public_prompt_triple(trp)
 
             private_trps = record["private"]
-
-            for trp in private_trps:  # 35
-                private = private + "<rsubj>{}<rrel>{}<robj>{}<re>".format(trp[0], trp[1], trp[2])
+            for trp in private_trps:
+                private += serialize_private_prompt_triple(trp)
             text += record["text"]
             anonymized_text = record["anonymized_text"]
 
@@ -83,20 +112,11 @@ class Anonymize_Doc_popqa(Dataset):
                 return_attention_mask=True,
                 return_tensors='pt',
             )
-            new_example = {"input_ids": input_encoding['input_ids'].flatten(), "attention_mask": input_encoding['attention_mask'].flatten(), "labels": labels["input_ids"].flatten()}
-            # flat_concat = tokenizer.encode(sys_prompt+text, add_special_tokens=True, max_length=args.max_passage_length)  # 256
-            # public_ids = tokenizer.encode(public, add_special_tokens=True, max_length=args.max_public_length)  # 742
-            # flat_concat.extend(public_ids)
-            # private_ids = tokenizer.encode(private, add_special_tokens=True, max_length=args.max_private_length)  # 252
-            # flat_concat.extend(private_ids)
-            # target_ids = tokenizer.encode(anonymized_text, add_special_tokens=True, max_length=args.max_passage_length)
-            #
-            # flat_concat, flat_concat_mask = padding_seq_to_same_length(flat_concat,
-            #                                                            max_pad_length=args.max_concat_length)
-            # target_ids, target_mask = padding_seq_to_same_length(target_ids, max_pad_length=args.max_passage_length)
-
-            # new_example = {"input_ids": flat_concat, "attention_mask": flat_concat_mask, "labels": target_ids,
-            #                "labels_mask": target_mask}
+            new_example = {
+                "input_ids": input_encoding["input_ids"].flatten(),
+                "attention_mask": input_encoding["attention_mask"].flatten(),
+                "labels": labels["input_ids"].flatten(),
+            }
             self.examples.append(new_example)
 
     def __len__(self):
@@ -110,17 +130,7 @@ class Anonymize_Doc_popqa(Dataset):
 class Test_Rewrite_Doc_popqa(Dataset):
     def __init__(self, args, tokenizer, filename):
         self.examples = []
-        data = []
-        with open(filename, "r") as fin:
-            for k, example in enumerate(fin):
-                example = json.loads(example)
-                data.append(example)
-        n = len(data)
-        n = int(args.use_data_percent * n)
-        # randomly sample n samples for debugging
-        if n < len(data):
-            random.seed(args.seed)
-            data = random.sample(data, n)
+        data = select_records(load_jsonl(filename), args)
         sys_prompt = '''Rewrite the given text to remove or generalize only the private relations and their tail entities from the provided private triples 
                         while preserving all head entities, ensuring the text retains relevant public information and any details not mentioned in the triples.'''
         for record in tqdm(data):
@@ -133,12 +143,12 @@ class Test_Rewrite_Doc_popqa(Dataset):
                 private = ""
                 text = ""
             public_trps = record["public"]
-            for trp in public_trps:  # 105
-                public = public + "<subj>{}<rel>{}<obj>{}<e>".format(trp[0], trp[1], trp[2])
+            for trp in public_trps:
+                public += serialize_public_prompt_triple(trp)
 
             private_trps = record["private"]
-            for trp in private_trps:  # 35
-                private = private + "<subj>{}<rel>{}<obj>{}<e>".format(trp[0], trp[1], trp[2])
+            for trp in private_trps:
+                private += serialize_private_prompt_triple(trp)
             text += record["text"]
             anonymized_text = record["anonymized_text"]
 
@@ -161,7 +171,11 @@ class Test_Rewrite_Doc_popqa(Dataset):
                 return_attention_mask=True,
                 return_tensors='pt',
             )
-            new_example = {"input_ids": input_encoding['input_ids'].flatten(), "attention_mask": input_encoding['attention_mask'].flatten(), "labels": labels["input_ids"].flatten()}
+            new_example = {
+                "input_ids": input_encoding["input_ids"].flatten(),
+                "attention_mask": input_encoding["attention_mask"].flatten(),
+                "labels": labels["input_ids"].flatten(),
+            }
 
             self.examples.append(new_example)
 

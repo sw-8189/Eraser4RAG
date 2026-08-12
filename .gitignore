@@ -1,0 +1,65 @@
+# Python bytecode and test caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments and local environment files
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# IDE and operating-system metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local planning, machine-specific reports, and intermediate research notes
+# (never publish)
+/plan/
+
+# Model caches, weights, checkpoints, and experiment tracking
+models/
+checkpoints/
+output_checkpoint/
+outputs/
+logs/
+runs/
+wandb/
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+
+# Retrieval indexes and generated experiment data
+*.faiss
+*.index
+/dataset/constructed_dataset/*.jsonl
+/dataset/retrieved_data/*
+!/dataset/retrieved_data/*.py
+/dataset/to_triplets/*
+!/dataset/to_triplets/*.py
+/dataset/sample_privacy/
+/dataset/special_data/
+/dataset/inference_attack/
+
+# Local Hugging Face caches (the runbook also recommends an external HF_HOME)
+/.cache/
+/hf_cache/
+
+# Target-environment lock captures are machine/image-specific artifacts
+/requirements/*-lock.txt
+
+# Temporary files
+*.tmp
+*.temp
+*.log

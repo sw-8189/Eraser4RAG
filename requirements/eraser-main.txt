@@ -1,0 +1,22 @@
+# Eraser4RAG eraser-main
+# Python: 3.10.14
+# Install torch==2.3.1 separately from the cu121 index on an AutoDL image with
+# a compatible NVIDIA driver: https://download.pytorch.org/whl/cu121
+
+numpy==1.26.4
+transformers==4.41.2
+trl==0.11.4
+accelerate==0.34.2
+relik==1.0.7
+datasets==2.14.7
+scikit-learn==1.5.2
+spacy==3.7.5
+networkx==3.2.1
+nltk==3.9.1
+jsonlines==4.0.0
+pandas==2.2.3
+tqdm==4.67.1
+sentencepiece==0.2.0
+tensorboard==2.17.1
+pyyaml==6.0.2
+pytest==8.3.5

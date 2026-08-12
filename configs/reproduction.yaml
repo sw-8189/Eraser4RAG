@@ -1,0 +1,97 @@
+schema_version: 1
+seed: 42
+
+environment:
+  python: "3.10.14"
+  torch: "2.3.1"
+  torch_cuda: "12.1"
+  main_name: eraser-main
+  coref_name: eraser-coref
+
+paths:
+  data_root: ./dataset
+  model_root: ./models
+  output_root: ./outputs
+  checkpoint_root: ./output_checkpoint
+  log_root: ./logs
+  hf_cache_root: ./hf_cache
+
+datasets:
+  sft: ./dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl
+  rl:
+    popqa: ./dataset/sample_privacy/popqa_10_25_trp.jsonl
+    triviaqa: ./dataset/sample_privacy/triviaqa_10_25_trp.jsonl
+    nq_open: ./dataset/sample_privacy/NQ-open_10_25_trp.jsonl
+    hotpotqa: ./dataset/sample_privacy/hotpotqa_10_25_trp.jsonl
+  evaluation:
+    special: ./dataset/special_data/popqa_10_25_special.jsonl
+    inference_attack: ./dataset/inference_attack/popqa_10_25_inferattack.jsonl
+
+checkpoints:
+  sft: ./output_checkpoint/SFT
+  rl: ./output_checkpoint/RL
+
+artifacts:
+  rewritten:
+    special: ./outputs/rewritten/popqa_10_25_special.jsonl
+    inference_attack: ./outputs/rewritten/popqa_10_25_inferattack.jsonl
+  validation: ./outputs/validation
+  relik_consistency: ./outputs/relik_consistency
+
+models:
+  flan_t5_base: google/flan-t5-base
+  flan_t5_large: google/flan-t5-large
+  relik: relik-ie/relik-relation-extraction-small
+  contriever: facebook/contriever-msmarco
+  llama3: meta-llama/Meta-Llama-3-8B-Instruct
+
+# Frozen Hub heads selected for this reconstruction on 2026-08-12. These are
+# immutable download targets for deterministic reruns, not revisions reported
+# by the paper's public snapshot.
+model_revisions:
+  flan_t5_base: 7bcac572ce56db69c1ea7c8af255c5d7c9672fc2
+  flan_t5_large: 0613663d0d48ea86ba8cb3d7a44f0f65dc596a2a
+  relik: 5ec49fa288ac5855a9d632c16e724e1568e2e1b1
+  contriever: abe8c1493371369031bcb1e02acb754cf4e162fa
+  llama3: 8afb486c1db24fe5011ec46dfbe5b5dccdb575c2
+
+model_paths:
+  smoke: ./models/smoke
+  sft: ./models/sft
+  relik: ./models/relik
+  retrieval: ./models/retrieval
+  eval: ./models/eval
+
+retrieval:
+  top_k: 10
+
+privacy:
+  sampling_rate: 0.25
+  seed: 42
+
+sft:
+  epochs: 3
+  learning_rate: 5.0e-5
+  max_concat_length: 1300
+  max_passage_length: 128
+
+rl:
+  batch_size: 16
+  mini_batch_size: 8
+  ppo_epochs: 4
+  learning_rate: 1.0e-5
+  gamma: 0.99
+  initial_p: 20
+  p_increment: 5
+  p_interval: 350
+  p_max: 40
+  # [RECONSTRUCTION] Exact outer PPO updates. The paper does not report a
+  # formal stopping count, so this remains a declared experiment choice.
+  max_steps: 200000
+
+relik_consistency:
+  sample_size: 500
+  smoke_sample_size: 50
+  seed: 42
+  warning_threshold: 0.80
+  report_path: ./outputs/relik_consistency/report.json

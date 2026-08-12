@@ -1,0 +1,11 @@
+# Eraser4RAG eraser-coref
+# Python: 3.10.14
+# This environment is only for coreference preprocessing.
+
+coreferee==1.4.1
+spacy==3.5.0
+
+# After installing:
+# python -m spacy download en_core_web_lg
+# python -m coreferee install en
+# pip check
