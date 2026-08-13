@@ -104,16 +104,41 @@ curl -L --fail --retry 8 --retry-delay 3 -C - \
   -o "$ERASER_DATA_ROOT/model_wheels/coreferee_model_en.zip" \
   https://raw.githubusercontent.com/richardpaulhudson/coreferee/aeb42a447484ad019fef4ea2dc6f5c952af29794/models/coreferee_model_en.zip
 python -m zipfile -t "$ERASER_DATA_ROOT/model_wheels/coreferee_model_en.zip"
-pip install --no-deps "$ERASER_DATA_ROOT/model_wheels/coreferee_model_en.zip"
+rm -rf "$TMPDIR/coreferee_model_en"
+mkdir -p "$TMPDIR/coreferee_model_en"
+unzip -q "$ERASER_DATA_ROOT/model_wheels/coreferee_model_en.zip" \
+  -d "$TMPDIR/coreferee_model_en"
+pip install --no-deps --force-reinstall "$TMPDIR/coreferee_model_en"
+rm -rf "$TMPDIR/coreferee_model_en"
 
 pip check
+
+# The 2 GB no-GPU container can verify all package/model versions safely:
+python scripts/check_environment.py --mode coref --skip-pipeline-load
+
+# Run the real large spaCy + Coreferee pipeline after switching back to a GPU
+# instance (the pipeline uses CPU, but that instance has a higher RAM limit):
 python scripts/check_environment.py --mode coref
 ```
 
-This coreference pipeline runs on CPU and is appropriate for AutoDL no-GPU
-mode. The fixed Coreferee model commit is an engineering reproducibility pin;
-the package's default command, `python -m coreferee install en`, is deliberately
-not used because it downloads from a floating branch.
+Coreference inference itself runs on CPU. However, AutoDL's 2 GB no-GPU cgroup
+is too small to load `en_core_web_lg` and Coreferee together while VS Code and
+the platform services are running; the process was killed at that boundary.
+Use no-GPU mode for download, installation, and the version gate, then repeat
+the full pipeline check on the GPU instance. The fixed Coreferee model commit
+is an engineering reproducibility pin; the package's default command,
+`python -m coreferee install en`, is deliberately not used because it downloads
+from a floating branch.
+
+Verified download SHA-256 values:
+
+```text
+en_core_web_lg-3.5.0-py3-none-any.whl
+c8ac64840c1eb3e3ca7bd38bd1e1c48fb0faeb2449d54d01d5ce629af4595775
+
+coreferee_model_en.zip
+aec5662b4af38fbf4b8c67e4aada8b828c51d4a224b5e08f7b2b176c02d8780f
+```
 
 After the real pipeline check passes, capture the resolved environment:
 

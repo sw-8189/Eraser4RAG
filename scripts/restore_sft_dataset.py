@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--force", action="store_true")
     parser.add_argument(
         "--extractor",
-        help="RAR-capable executable; auto-detects 7zz, 7z, unrar, bsdtar, or tar",
+        help="RAR-capable executable; auto-detects unrar, 7zz, 7z, bsdtar, or tar",
     )
     return parser
 
@@ -48,6 +48,19 @@ def extraction_command(executable: str, archive: Path, output_dir: Path) -> list
     if name in {"unrar", "unrar.exe"}:
         return [executable, "x", "-o+", str(archive), EXPECTED_MEMBER, str(output_dir)]
     return [executable, "-xf", str(archive), "-C", str(output_dir), EXPECTED_MEMBER]
+
+
+def find_extractor() -> str | None:
+    # Ubuntu's older 7z builds may not support RAR5 compression methods.
+    # Prefer the native RAR5 extractor when available.
+    return next(
+        (
+            candidate
+            for candidate in ("unrar", "7zz", "7z", "bsdtar", "tar")
+            if shutil.which(candidate)
+        ),
+        None,
+    )
 
 
 def main(argv: Iterable[str] | None = None) -> int:
@@ -73,14 +86,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         )
     extractor = args.extractor
     if extractor is None:
-        extractor = next(
-            # Ubuntu's older 7z builds may not support RAR5 compression
-            # methods. Prefer the native RAR5 extractor when available.
-            (candidate for candidate in ("unrar", "7zz", "7z", "bsdtar", "tar") if shutil.which(candidate)),
-            None,
-        )
+        extractor = find_extractor()
     if extractor is None:
-        raise RuntimeError("no RAR-capable extractor found; install p7zip-full on AutoDL")
+        raise RuntimeError("no RAR5-capable extractor found; install unrar on AutoDL")
     command = extraction_command(extractor, archive, output_dir)
     subprocess.run(command, check=True)
     if not output.is_file():

@@ -5,6 +5,7 @@ from scripts.restore_sft_dataset import (
     DATASET_SHA256,
     REPO_ROOT,
     extraction_command,
+    find_extractor,
     main,
     sha256,
 )
@@ -28,3 +29,11 @@ def test_extraction_command_supports_linux_7zip(tmp_path):
     command = extraction_command("7zz", tmp_path / "data.rar", tmp_path / "out")
     assert command[:2] == ["7zz", "x"]
     assert command[-1] == "popqa_10_25_filtered_new.jsonl"
+
+
+def test_extractor_discovery_prefers_unrar_for_rar5(monkeypatch):
+    available = {"unrar": "/usr/bin/unrar", "7z": "/usr/bin/7z"}
+    monkeypatch.setattr(
+        "scripts.restore_sft_dataset.shutil.which", available.get
+    )
+    assert find_extractor() == "unrar"
