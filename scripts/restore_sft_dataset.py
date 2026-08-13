@@ -74,7 +74,9 @@ def main(argv: Iterable[str] | None = None) -> int:
     extractor = args.extractor
     if extractor is None:
         extractor = next(
-            (candidate for candidate in ("7zz", "7z", "unrar", "bsdtar", "tar") if shutil.which(candidate)),
+            # Ubuntu's older 7z builds may not support RAR5 compression
+            # methods. Prefer the native RAR5 extractor when available.
+            (candidate for candidate in ("unrar", "7zz", "7z", "bsdtar", "tar") if shutil.which(candidate)),
             None,
         )
     if extractor is None:

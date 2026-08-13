@@ -16,11 +16,31 @@ git rev-parse HEAD
 The local preparation agent does not push automatically. Confirm that the
 branch containing the P0–P7 changes has been pushed before using these commands.
 
-## 2. Create the main environment
+## 2. Put environments and caches on the data disk
+
+AutoDL's system disk is small. Keep environments, package caches, model
+snapshots, and temporary files under the persistent data disk:
 
 ```bash
-conda create -n eraser-main python=3.10.14 -y
-conda activate eraser-main
+export ERASER_DATA_ROOT=/root/autodl-tmp
+export CONDA_PKGS_DIRS="$ERASER_DATA_ROOT/conda/pkgs"
+export PIP_CACHE_DIR="$ERASER_DATA_ROOT/pip_cache"
+export HF_HOME="$ERASER_DATA_ROOT/hf_cache"
+export TMPDIR="$ERASER_DATA_ROOT/tmp"
+mkdir -p "$CONDA_PKGS_DIRS" "$PIP_CACHE_DIR" "$HF_HOME" "$TMPDIR" \
+  "$ERASER_DATA_ROOT/model_wheels"
+source /root/miniconda3/etc/profile.d/conda.sh
+```
+
+These exports must be repeated after reconnecting unless they are added to the
+shell startup file. The commands below use prefix environments so that they
+remain on the data disk.
+
+## 3. Create the main environment
+
+```bash
+conda create -p "$ERASER_DATA_ROOT/conda/envs/eraser-main" python=3.10.14 -y
+conda activate "$ERASER_DATA_ROOT/conda/envs/eraser-main"
 ```
 
 Check the image and driver first:
@@ -40,7 +60,19 @@ pip install torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121
 ```bash
 pip install -r requirements/eraser-main.txt
 pip check
-python -m spacy download en_core_web_sm
+
+curl -L --fail --retry 8 --retry-delay 3 -C - \
+  -o "$ERASER_DATA_ROOT/model_wheels/en_core_web_sm-3.7.1-py3-none-any.whl" \
+  https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+python -m zipfile -t \
+  "$ERASER_DATA_ROOT/model_wheels/en_core_web_sm-3.7.1-py3-none-any.whl"
+pip install --no-deps \
+  "$ERASER_DATA_ROOT/model_wheels/en_core_web_sm-3.7.1-py3-none-any.whl"
+
+# Valid in AutoDL no-GPU mode:
+python scripts/check_environment.py --mode main --cpu-only
+
+# Repeat this GPU gate after switching to a GPU instance:
 python scripts/check_environment.py --mode main
 pip freeze > requirements/eraser-main-lock.txt
 ```
@@ -48,17 +80,40 @@ pip freeze > requirements/eraser-main-lock.txt
 Expected critical versions include Transformers 4.41.2, TRL 0.11.4, ReLiK
 1.0.7, spaCy 3.7.5, and Torch 2.3.1. Do not upgrade TRL or Transformers.
 
-## 3. Create the coreference environment
+The verified SHA-256 of the spaCy model wheel is
+`86cc141f63942d4b2c5fcee06630fd6f904788d2f0ab005cce45aadb8fb73889`.
+
+## 4. Create the coreference environment
 
 ```bash
-conda create -n eraser-coref python=3.10.14 -y
-conda activate eraser-coref
+conda create -p "$ERASER_DATA_ROOT/conda/envs/eraser-coref" python=3.10.14 -y
+conda activate "$ERASER_DATA_ROOT/conda/envs/eraser-coref"
 pip install -r requirements/eraser-coref.txt
-python -m spacy download en_core_web_lg
-python -m coreferee install en
+
+curl -L --fail --retry 8 --retry-delay 3 -C - \
+  -o "$ERASER_DATA_ROOT/model_wheels/en_core_web_lg-3.5.0-py3-none-any.whl" \
+  https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.5.0/en_core_web_lg-3.5.0-py3-none-any.whl
+python -m zipfile -t \
+  "$ERASER_DATA_ROOT/model_wheels/en_core_web_lg-3.5.0-py3-none-any.whl"
+pip install --no-deps \
+  "$ERASER_DATA_ROOT/model_wheels/en_core_web_lg-3.5.0-py3-none-any.whl"
+
+# Coreferee's built-in installer follows the mutable master branch. Pin the
+# exact upstream commit containing the English model instead.
+curl -L --fail --retry 8 --retry-delay 3 -C - \
+  -o "$ERASER_DATA_ROOT/model_wheels/coreferee_model_en.zip" \
+  https://raw.githubusercontent.com/richardpaulhudson/coreferee/aeb42a447484ad019fef4ea2dc6f5c952af29794/models/coreferee_model_en.zip
+python -m zipfile -t "$ERASER_DATA_ROOT/model_wheels/coreferee_model_en.zip"
+pip install --no-deps "$ERASER_DATA_ROOT/model_wheels/coreferee_model_en.zip"
+
 pip check
 python scripts/check_environment.py --mode coref
 ```
+
+This coreference pipeline runs on CPU and is appropriate for AutoDL no-GPU
+mode. The fixed Coreferee model commit is an engineering reproducibility pin;
+the package's default command, `python -m coreferee install en`, is deliberately
+not used because it downloads from a floating branch.
 
 After the real pipeline check passes, capture the resolved environment:
 
@@ -70,7 +125,7 @@ Return to the main environment for all steps except raw retrieved-document
 coreference cleaning:
 
 ```bash
-conda activate eraser-main
+conda activate "$ERASER_DATA_ROOT/conda/envs/eraser-main"
 ```
 
 Run a stage preflight whenever the workspace changes. A nonzero exit is a hard
@@ -82,7 +137,7 @@ python scripts/autodl_preflight.py --stage ppo
 python scripts/autodl_preflight.py --stage full
 ```
 
-## 4. Place and validate the author SFT dataset
+## 5. Place and validate the author SFT dataset
 
 Expected path:
 
@@ -95,8 +150,9 @@ On a fresh clone the tracked input is the archive
 ignored because it is a generated large artifact. Restore it before validation:
 
 ```bash
-command -v 7zz >/dev/null || command -v 7z >/dev/null || \
-  (apt-get update && apt-get install -y p7zip-full)
+# RAR5 archives require a recent native RAR extractor on Ubuntu 22.04.
+command -v unrar >/dev/null || \
+  (apt-get update && apt-get install -y unrar)
 python scripts/restore_sft_dataset.py
 ```
 
@@ -117,7 +173,7 @@ python scripts/validate_sft_dataset.py \
 Both JSON and Markdown reports must say `PASS`. Preserve the report with the
 experiment artifacts.
 
-## 5. Download and verify only the first required models
+## 6. Download and verify only the first required models
 
 The repository configuration freezes one immutable commit for each model as
 of 2026-08-12. These commits are an engineering reconstruction choice because
@@ -146,7 +202,7 @@ python scripts/verify_models.py --stage smoke --model models/smoke --load-model
 
 Do not download Llama 3 at this stage.
 
-## 6. Mandatory ReLiK consistency gate
+## 7. Mandatory ReLiK consistency gate
 
 ### 6.1 Fixed 50-sample smoke
 
@@ -188,7 +244,7 @@ any key recall is materially below it, stop and check model ID/revision,
 `relik==1.0.7`, `use_nme`, duplicate rules, relation labels, and serialization.
 Do not launch full PPO without a reviewed 500-sample report.
 
-## 7. SFT smoke and full SFT
+## 8. SFT smoke and full SFT
 
 First run a short Flan-T5-large smoke:
 
@@ -222,7 +278,7 @@ python finetune_rewrite_doc.py <same-arguments> \
   --resume-from-checkpoint output_checkpoint/SFT/checkpoint-<step>
 ```
 
-## 8. PPO engineering smoke from the SFT file
+## 9. PPO engineering smoke from the SFT file
 
 Build and validate the explicitly reconstructed smoke corpus:
 
@@ -274,7 +330,7 @@ python RL_train.py <same-data-and-model-arguments> \
 Replace the `<same-...-arguments>` placeholders with the exact arguments from
 the preceding complete command when creating shell scripts or job manifests.
 
-## 9. Build the formal four-dataset PPO data
+## 10. Build the formal four-dataset PPO data
 
 Download Contriever only when the pinned corpus/index preparation begins:
 
@@ -327,7 +383,7 @@ python scripts/validate_rl_dataset.py --data <dataset>.jsonl \
   --require-qa --output-dir outputs/validation
 ```
 
-## 10. Formal PPO gate and launch
+## 11. Formal PPO gate and launch
 
 Before full PPO, all of these must exist or pass:
 
@@ -370,7 +426,7 @@ must never show 45.
 any non-dry model run. A `WARNING` report stops execution unless the mismatch
 has been reviewed, documented, and `--allow-relik-gate-warning` is supplied.
 
-## 11. Core evaluation and Llama 3
+## 12. Core evaluation and Llama 3
 
 First produce rewritten documents, then compute `r_pri`, `r_pub`, and
 `r_connect` with explicit model/data/output arguments. Inspect current CLI help
@@ -395,14 +451,14 @@ The current public snapshot does not contain a complete downstream Llama-3 QA
 evaluation entry point. Implementing or sourcing it must be recorded as a
 separate reconstruction before claiming paper RAG accuracy.
 
-## 12. Artifact and secret discipline
+## 13. Artifact and secret discipline
 
 Do not commit model weights, checkpoints, Wikipedia indexes, generated large
 JSONL files, `.env`, or access tokens. Preserve small manifests, config files,
 validation reports, exact commands, Git SHA, GPU model, CUDA/driver details,
 package locks, seeds, wall time, and checkpoint hashes with each experiment.
 
-## 13. Readiness boundary
+## 14. Readiness boundary
 
 Passing the commands above proves that the prepared code can begin staged
 AutoDL validation. It does not by itself prove full paper reproduction. The

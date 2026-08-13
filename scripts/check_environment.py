@@ -22,6 +22,7 @@ MAIN_PACKAGES = {
     "datasets": "2.14.7",
     "numpy": "1.26.4",
     "scikit-learn": "1.5.2",
+    "en-core-web-sm": "3.7.1",
 }
 
 EXPECTED_TORCH_CUDA = "12.1"
@@ -29,6 +30,8 @@ EXPECTED_TORCH_CUDA = "12.1"
 COREF_PACKAGES = {
     "spacy": "3.5.0",
     "coreferee": "1.4.1",
+    "en-core-web-lg": "3.5.0",
+    "coreferee-model-en": "1.0.0",
 }
 
 

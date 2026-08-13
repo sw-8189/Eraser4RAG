@@ -2,10 +2,14 @@
 # Python: 3.10.14
 # This environment is only for coreference preprocessing.
 
+# Coreferee imports pkg_resources, and spaCy 3.5/Thinc 8.1 is not ABI
+# compatible with NumPy 2.x in this environment.
+setuptools==70.3.0
+numpy==1.26.4
 coreferee==1.4.1
 spacy==3.5.0
 
 # After installing:
-# python -m spacy download en_core_web_lg
-# python -m coreferee install en
+# Install en_core_web_lg==3.5.0 and the immutable Coreferee English model URL
+# documented in docs/AUTODL_RUNBOOK.md. Do not use the floating installers.
 # pip check

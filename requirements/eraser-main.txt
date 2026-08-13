@@ -3,6 +3,9 @@
 # Install torch==2.3.1 separately from the cu121 index on an AutoDL image with
 # a compatible NVIDIA driver: https://download.pytorch.org/whl/cu121
 
+# ReLiK 1.0.7 -> Lightning 2.3.3 still imports pkg_resources, which was
+# removed from newer setuptools releases.
+setuptools==70.3.0
 numpy==1.26.4
 transformers==4.41.2
 trl==0.11.4
@@ -20,3 +23,6 @@ sentencepiece==0.2.0
 tensorboard==2.17.1
 pyyaml==6.0.2
 pytest==8.3.5
+
+# Install the pipeline model separately from the fixed wheel URL documented in
+# docs/AUTODL_RUNBOOK.md. The required model version is en_core_web_sm==3.7.1.
