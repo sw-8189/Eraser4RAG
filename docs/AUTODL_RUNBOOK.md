@@ -292,6 +292,16 @@ python finetune_rewrite_doc.py \
 
 Verify forward/backward, eval, save, and reload. Then run the formal settings:
 
+Each completed SFT output contains `training_manifest.json` with the source
+model revision, dataset SHA-256, effective settings, metrics, special-token
+contract, and model/tokenizer hashes. Verify a saved smoke checkpoint with:
+
+```bash
+python scripts/verify_models.py --stage sft \
+  --model output_checkpoint/SFT-smoke --training-checkpoint \
+  --load-model --device cuda
+```
+
 ```bash
 python finetune_rewrite_doc.py \
   --data-dir dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl \

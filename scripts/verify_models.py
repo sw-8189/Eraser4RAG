@@ -13,6 +13,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.download_models import MODEL_STAGES, REPO_ROOT, _config_revision
+from utils.triple_utils import SPECIAL_TOKENS
 
 
 def validate_local_manifest(
@@ -35,6 +36,35 @@ def validate_local_manifest(
         raise ValueError(
             f"model manifest revision mismatch: expected {expected_revision}"
         )
+    return manifest
+
+
+def validate_sft_training_manifest(model: str | Path) -> dict:
+    import hashlib
+
+    path = Path(model)
+    manifest_path = path / "training_manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError(f"SFT training manifest not found: {manifest_path}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema") != "eraser4rag-sft-checkpoint-v1":
+        raise ValueError("unsupported SFT training manifest schema")
+    if manifest.get("special_tokens") != list(SPECIAL_TOKENS):
+        raise ValueError("SFT checkpoint special token contract mismatch")
+    for name in ("model.safetensors", "tokenizer.json"):
+        file_path = path / name
+        expected = manifest.get("files", {}).get(name, {})
+        if not file_path.is_file():
+            raise FileNotFoundError(f"SFT checkpoint file not found: {file_path}")
+        digest_builder = hashlib.sha256()
+        with file_path.open("rb") as source:
+            for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                digest_builder.update(chunk)
+        digest = digest_builder.hexdigest()
+        if expected.get("size_bytes") != file_path.stat().st_size:
+            raise ValueError(f"SFT checkpoint size mismatch for {name}")
+        if expected.get("sha256") != digest:
+            raise ValueError(f"SFT checkpoint SHA-256 mismatch for {name}")
     return manifest
 
 
@@ -144,6 +174,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--load-model", action="store_true")
     parser.add_argument(
+        "--training-checkpoint",
+        action="store_true",
+        help="Validate an SFT training manifest instead of a download manifest.",
+    )
+    parser.add_argument(
         "--use-nme", action=argparse.BooleanOptionalAction, default=True
     )
     parser.add_argument(
@@ -156,7 +191,12 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     model = args.model or str(REPO_ROOT / "models" / args.stage)
     revision = args.revision or _config_revision(args.config, args.stage)
-    manifest = validate_local_manifest(model, args.stage, revision)
+    if args.training_checkpoint:
+        if args.stage != "sft":
+            raise ValueError("--training-checkpoint is only valid for --stage sft")
+        manifest = validate_sft_training_manifest(model)
+    else:
+        manifest = validate_local_manifest(model, args.stage, revision)
     device = _device(args.device)
     if args.stage in {"smoke", "sft"}:
         result = verify_flan(

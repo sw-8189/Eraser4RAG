@@ -1,4 +1,7 @@
 import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
 import logging
 import os
 import random
@@ -24,6 +27,57 @@ except (ImportError, ModuleNotFoundError):
 
 LOGGER = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parent
+
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_training_manifest(args, tokenizer, trainer, train_result):
+    output_dir = Path(args.output_dir)
+    source_manifest_path = Path(args.model_dir) / "download_manifest.json"
+    source_manifest = None
+    if source_manifest_path.is_file():
+        source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
+    model_path = output_dir / "model.safetensors"
+    tokenizer_path = output_dir / "tokenizer.json"
+    manifest = {
+        "schema": "eraser4rag-sft-checkpoint-v1",
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "source_model": str(Path(args.model_dir).resolve()),
+        "source_model_manifest": source_manifest,
+        "data_path": str(Path(args.data_dir).resolve()),
+        "data_sha256": sha256_file(args.data_dir),
+        "seed": args.seed,
+        "max_samples": args.max_samples,
+        "smoke_test": args.smoke_test,
+        "epochs": args.epochs,
+        "learning_rate": args.learning_rate,
+        "max_concat_length": args.max_concat_length,
+        "max_passage_length": args.max_passage_length,
+        "special_tokens": list(SPECIAL_TOKENS),
+        "tokenizer_size": len(tokenizer),
+        "train_metrics": dict(train_result.metrics),
+        "log_history": list(trainer.state.log_history),
+        "files": {
+            "model.safetensors": {
+                "size_bytes": model_path.stat().st_size,
+                "sha256": sha256_file(model_path),
+            },
+            "tokenizer.json": {
+                "size_bytes": tokenizer_path.stat().st_size,
+                "sha256": sha256_file(tokenizer_path),
+            },
+        },
+    }
+    (output_dir / "training_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return manifest
 
 
 def _config_defaults(path_value):
@@ -249,11 +303,12 @@ def main(argv=None):
         data_collator=data_collator,
         tokenizer=tokenizer,
     )
-    trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
+    train_result = trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
 
     # Keep the final checkpoint self-contained even if no periodic save was reached.
     trainer.save_model(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
+    write_training_manifest(args, tokenizer, trainer, train_result)
     LOGGER.info("Saved self-contained SFT model and tokenizer to %s", args.output_dir)
 
 
