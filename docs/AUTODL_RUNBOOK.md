@@ -314,6 +314,18 @@ python finetune_rewrite_doc.py \
 Formal defaults are epochs 3, lr `5e-5`, input length 1300, and target length
 128. Resume only from a checkpoint created by the same model/tokenizer setup:
 
+For a disconnect-safe formal run on images with GNU Screen:
+
+```bash
+screen -dmS eraser-sft-full bash scripts/run_sft_full.sh
+screen -ls
+tail -f logs/sft-full/train.log
+```
+
+Detaching the SSH or VS Code session does not stop this job. The launcher
+refuses to overwrite `output_checkpoint/SFT` and records run metadata plus the
+eventual process exit code under `logs/sft-full/`.
+
 ```bash
 python finetune_rewrite_doc.py <same-arguments> \
   --resume-from-checkpoint output_checkpoint/SFT/checkpoint-<step>
