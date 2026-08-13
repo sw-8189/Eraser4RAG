@@ -218,6 +218,12 @@ immutable revision. If a commit cannot be chosen in advance, the explicit
 `--allow-floating-revision` option resolves the current head once and records
 it; this is a documented fallback, not the formal default.
 
+For the Flan stages, the downloader intentionally fetches only configuration,
+tokenizer files, and `model.safetensors`. PyTorch does not need the duplicate
+`pytorch_model.bin`, TensorFlow, or Flax weights. An interrupted local-dir
+download resumes only when its Hub metadata identifies the same immutable
+commit and every completed visible file belongs to that stage's allow-list.
+
 Flan-T5-base is optional for API smoke tests:
 
 ```bash
