@@ -32,11 +32,17 @@ def _safe_parent(path: str) -> None:
     os.makedirs(parent, exist_ok=True)
 
 
-def iter_data(data_path: str, max_samples: int | None = None) -> Iterator[dict[str, Any]]:
+def iter_data(
+    data_path: str,
+    max_samples: int | None = None,
+    start_samples: int = 0,
+) -> Iterator[dict[str, Any]]:
     """Yield JSON/JSONL records without loading a JSONL file into memory."""
 
     if max_samples is not None and max_samples < 0:
         raise ValueError("max_samples must be non-negative or None")
+    if start_samples < 0:
+        raise ValueError("start_samples must be non-negative")
 
     suffix = Path(data_path).suffix.lower()
     if suffix == ".json":
@@ -45,7 +51,9 @@ def iter_data(data_path: str, max_samples: int | None = None) -> Iterator[dict[s
         if not isinstance(data, list):
             raise TypeError(f"Expected a JSON array in {data_path}")
         for index, record in enumerate(data):
-            if max_samples is not None and index >= max_samples:
+            if index < start_samples:
+                continue
+            if max_samples is not None and index >= start_samples + max_samples:
                 break
             if not isinstance(record, dict):
                 raise TypeError(f"Record {index} in {data_path} is not an object")
@@ -55,8 +63,12 @@ def iter_data(data_path: str, max_samples: int | None = None) -> Iterator[dict[s
     if suffix == ".jsonl":
         with open(data_path, "r", encoding="utf-8") as fin:
             emitted = 0
+            skipped = 0
             for line_number, line in enumerate(fin, start=1):
                 if not line.strip():
+                    continue
+                if skipped < start_samples:
+                    skipped += 1
                     continue
                 if max_samples is not None and emitted >= max_samples:
                     break
@@ -70,10 +82,18 @@ def iter_data(data_path: str, max_samples: int | None = None) -> Iterator[dict[s
     raise ValueError(f"Unsupported input format: {data_path}; expected .json or .jsonl")
 
 
-def load_data(data_path: str, max_samples: int | None = None) -> list[dict[str, Any]]:
+def load_data(
+    data_path: str, max_samples: int | None = None, start_samples: int = 0
+) -> list[dict[str, Any]]:
     """Backward-compatible materializing wrapper used by older callers/tests."""
 
-    return list(iter_data(data_path, max_samples=max_samples))
+    return list(
+        iter_data(
+            data_path,
+            max_samples=max_samples,
+            start_samples=start_samples,
+        )
+    )
 
 
 def _entity_text(coref_doc: Any, token: Any) -> str:
@@ -131,7 +151,12 @@ def main(args: argparse.Namespace) -> dict[str, Any]:
     processed_contexts = 0
     with open(output_path, "w", encoding="utf-8") as fout:
         for record_index, data_each in enumerate(
-            iter_data(input_path, max_samples=args.max_samples), start=1
+            iter_data(
+                input_path,
+                max_samples=args.max_samples,
+                start_samples=args.start_samples,
+            ),
+            start=1,
         ):
             contexts = data_each.get("ctxs")
             if not isinstance(contexts, list):
@@ -168,6 +193,7 @@ def main(args: argparse.Namespace) -> dict[str, Any]:
         "records": processed_records,
         "contexts": processed_contexts,
         "max_samples": args.max_samples,
+        "start_samples": args.start_samples,
     }
     metadata_path = args.metadata_output or f"{output_path}.meta.json"
     _safe_parent(metadata_path)
@@ -198,6 +224,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--spacy_model", default="en_core_web_lg")
     parser.add_argument("--max_samples", type=int, default=None)
+    parser.add_argument("--start_samples", type=int, default=0)
     parser.add_argument(
         "--metadata_output",
         default=None,

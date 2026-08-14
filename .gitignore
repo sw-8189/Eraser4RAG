@@ -43,6 +43,7 @@ wandb/
 # Retrieval indexes and generated experiment data
 *.faiss
 *.index
+/dataset/source_data/
 /dataset/constructed_dataset/*.jsonl
 /dataset/retrieved_data/*
 !/dataset/retrieved_data/*.py
