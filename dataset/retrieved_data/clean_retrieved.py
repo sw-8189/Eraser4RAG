@@ -46,8 +46,12 @@ def _context_timeout(seconds: float | None) -> Iterator[None]:
     if threading.current_thread() is not threading.main_thread():
         raise RuntimeError("Per-context timeouts must run on the main thread")
 
+    expired = False
+
     def _raise_timeout(signum: int, frame: Any) -> None:
+        nonlocal expired
         del signum, frame
+        expired = True
         raise CorefereeContextTimeout(
             f"Coreferee exceeded the {seconds:g}-second per-context limit"
         )
@@ -60,6 +64,12 @@ def _context_timeout(seconds: float | None) -> Iterator[None]:
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
         signal.signal(signal.SIGALRM, previous_handler)
+    # Coreferee catches pipeline exceptions internally. Re-raise after it
+    # returns so the caller still preserves the original text and provenance.
+    if expired:
+        raise CorefereeContextTimeout(
+            f"Coreferee exceeded the {seconds:g}-second per-context limit"
+        )
 
 
 def _safe_parent(path: str) -> None:
@@ -212,9 +222,13 @@ def main(args: argparse.Namespace) -> dict[str, Any]:
                     with _context_timeout(args.per_context_timeout_seconds):
                         example["text"] = coref_text(coref_nlp, text)
                 except CorefereeContextTimeout:
+                    example["text"] = text
                     source_index = args.start_samples + record_index - 1
+                    record_id = data_each.get("id")
+                    if record_id is None:
+                        record_id = data_each.get("_id", f"record-{source_index}")
                     timeout_record = {
-                        "id": str(data_each.get("id", f"record-{source_index}")),
+                        "id": str(record_id),
                         "source_index": source_index,
                         "context_index": context_index,
                     }
