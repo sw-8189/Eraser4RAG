@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from utils.triple_utils import (
     TripleFormatError,
+    normalize_triple_collection,
     parse_serialized_triple,
     serialize_triple,
 )
@@ -64,8 +65,13 @@ def _raw_triples(value: Any, location: str, add_error) -> list[tuple[str, str, s
         if not all(isinstance(part, str) for part in triple):
             add_error(f"{location}[{index}]", "triple items must be strings")
             continue
-        normalized = (triple[0], triple[1], triple[2])
         try:
+            normalized_list = normalize_triple_collection(triple)[0]
+            normalized = (
+                normalized_list[0],
+                normalized_list[1],
+                normalized_list[2],
+            )
             # Reuse the exact strictness applied by the PPO prompt builder so
             # data cannot pass validation and then fail at training time.
             serialize_triple(normalized)

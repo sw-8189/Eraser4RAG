@@ -132,3 +132,14 @@ def test_is_serialized_triple_never_raises_for_bad_input():
     assert is_serialized_triple(serialize_triple(TRIPLE))
     assert not is_serialized_triple("not a triple")
     assert not is_serialized_triple(123)
+
+
+def test_whitespace_in_components_is_canonicalized_for_tagged_roundtrip():
+    raw = ["North Carolina\n Films", "country", "American"]
+    serialized = serialize_triple(raw)
+    assert serialized == "<subj>North Carolina Films<rel>country<obj>American<e>"
+    assert parse_serialized_triple(serialized) == [
+        "North Carolina Films",
+        "country",
+        "American",
+    ]

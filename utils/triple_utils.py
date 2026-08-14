@@ -1,8 +1,9 @@
 """Strict serialization helpers for Eraser4RAG knowledge triples.
 
-The helpers intentionally preserve entity and relation text verbatim.  They do
-not lowercase, fuzzy-match, or silently repair malformed triples because those
-operations would change the reference sets used by the paper's reward.
+The helpers preserve entity/relation content while canonicalizing internal
+ whitespace. They do not lowercase, fuzzy-match, or silently repair malformed
+ triples because those operations would change the reference sets used by the
+ paper's reward.
 """
 
 from __future__ import annotations
@@ -55,7 +56,12 @@ def _coerce_raw_triple(triple: Sequence[str]) -> List[str]:
     if len(triple) != 3:
         raise TripleFormatError(f"A triple must contain exactly three items; got {len(triple)}")
 
-    normalized = list(triple)
+    # Coreferee/ReLiK can return an entity span containing a line break. Keep
+    # the entity text but make raw and tagged representations compare equally.
+    normalized = [
+        " ".join(component.split()) if isinstance(component, str) else component
+        for component in triple
+    ]
     for index, component in enumerate(normalized):
         if not isinstance(component, str):
             raise TripleFormatError(

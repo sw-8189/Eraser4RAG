@@ -14,6 +14,13 @@ from typing import Any
 
 import spacy
 
+try:
+    from utils.triple_utils import normalize_triple_collection
+except ModuleNotFoundError as exc:  # Support ``python utils/process_triplets.py``.
+    if exc.name != "utils":
+        raise
+    from triple_utils import normalize_triple_collection  # type: ignore[no-redef]
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -108,7 +115,8 @@ def are_nodes_connected(
 def _validate_triple(triple: Sequence[Any], where: str) -> tuple[str, str, str]:
     if len(triple) != 3 or not all(isinstance(value, str) for value in triple):
         raise TypeError(f"Malformed triple in {where}: {triple!r}")
-    return triple[0], triple[1], triple[2]
+    normalized = normalize_triple_collection(triple)[0]
+    return normalized[0], normalized[1], normalized[2]
 
 
 def merge_triplets(
