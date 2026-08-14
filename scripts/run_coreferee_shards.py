@@ -10,6 +10,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+from itertools import zip_longest
 from pathlib import Path
 from typing import Iterable
 
@@ -45,6 +46,57 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _iter_jsonl_objects(path: Path) -> Iterable[dict[str, object]]:
+    with path.open("r", encoding="utf-8") as source:
+        for line_number, line in enumerate(source, start=1):
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            if not isinstance(record, dict):
+                raise TypeError(f"{path}:{line_number} is not a JSON object")
+            yield record
+
+
+def validate_reusable_output(input_path: Path, output_path: Path, expected_records: int) -> None:
+    """Ensure a completed merged file still aligns with its source before reuse."""
+
+    if count_jsonl_records(output_path) != expected_records:
+        raise RuntimeError(
+            f"cannot reuse {output_path}: record count does not equal {expected_records}"
+        )
+
+    missing = object()
+    for record_index, (input_record, output_record) in enumerate(
+        zip_longest(
+            _iter_jsonl_objects(input_path),
+            _iter_jsonl_objects(output_path),
+            fillvalue=missing,
+        ),
+        start=1,
+    ):
+        if input_record is missing or output_record is missing:
+            raise RuntimeError(f"cannot reuse {output_path}: source/output lengths differ")
+        if input_record.get("id") != output_record.get("id"):
+            raise RuntimeError(
+                f"cannot reuse {output_path}: record {record_index} has a different id"
+            )
+        input_contexts = input_record.get("ctxs")
+        output_contexts = output_record.get("ctxs")
+        if not isinstance(input_contexts, list) or not isinstance(output_contexts, list):
+            raise RuntimeError(f"cannot reuse {output_path}: record {record_index} has no ctxs list")
+        if len(input_contexts) != len(output_contexts):
+            raise RuntimeError(
+                f"cannot reuse {output_path}: record {record_index} has a different context count"
+            )
+        if not all(
+            isinstance(context, dict) and isinstance(context.get("text"), str)
+            for context in output_contexts
+        ):
+            raise RuntimeError(
+                f"cannot reuse {output_path}: record {record_index} has an invalid context"
+            )
+
+
 def merge_jsonl_shards(shard_paths: list[Path], output_path: Path) -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temporary = output_path.with_suffix(output_path.suffix + ".tmp")
@@ -73,6 +125,7 @@ def run_shard(
     metadata_path: Path,
     log_path: Path,
     spacy_model: str,
+    per_context_timeout_seconds: float | None,
 ) -> dict[str, object]:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
@@ -93,6 +146,10 @@ def run_shard(
         "--metadata_output",
         str(metadata_path),
     ]
+    if per_context_timeout_seconds is not None:
+        command.extend(
+            ["--per-context-timeout-seconds", str(per_context_timeout_seconds)]
+        )
     with log_path.open("w", encoding="utf-8") as log:
         subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
@@ -121,11 +178,27 @@ def process_input(
     workers: int,
     records_per_shard: int,
     max_records: int | None,
+    per_context_timeout_seconds: float | None,
+    reuse_complete: bool,
 ) -> dict[str, object]:
     available_records = count_jsonl_records(input_path)
     total = min(available_records, max_records) if max_records is not None else available_records
     shards = build_shards(total, records_per_shard)
     prefix = input_path.stem
+    output_path = output_dir / f"{prefix}_clean.jsonl"
+    if reuse_complete and output_path.is_file():
+        validate_reusable_output(input_path, output_path, total)
+        return {
+            "input": str(input_path.resolve()),
+            "input_sha256": sha256(input_path),
+            "records": total,
+            "shards": [],
+            "output": str(output_path.resolve()),
+            "output_sha256": sha256(output_path),
+            "merged_records": total,
+            "reused_complete": True,
+        }
+
     current_shard_dir = shard_dir / prefix
     tasks = []
     for shard in shards:
@@ -151,6 +224,7 @@ def process_input(
                 metadata_path=metadata_path,
                 log_path=log_path,
                 spacy_model=spacy_model,
+                per_context_timeout_seconds=per_context_timeout_seconds,
             )
             for shard, output_path, metadata_path, log_path in tasks
         ]
@@ -158,7 +232,6 @@ def process_input(
             completed.append(future.result())
 
     ordered = sorted(completed, key=lambda item: int(item["index"]))
-    output_path = output_dir / f"{prefix}_clean.jsonl"
     merged_records = merge_jsonl_shards(
         [Path(str(item["output"])) for item in ordered], output_path
     )
@@ -172,6 +245,7 @@ def process_input(
         "output": str(output_path.resolve()),
         "output_sha256": sha256(output_path),
         "merged_records": merged_records,
+        "reused_complete": False,
     }
 
 
@@ -190,12 +264,23 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=16)
     parser.add_argument("--records-per-shard", type=int, default=250)
     parser.add_argument("--max-records", type=int)
+    parser.add_argument("--per-context-timeout-seconds", type=float)
+    parser.add_argument(
+        "--reuse-complete",
+        action="store_true",
+        help="Validate and reuse a complete merged output instead of recomputing it",
+    )
     parser.add_argument("--manifest", required=True, type=Path)
     args = parser.parse_args(argv)
     if args.workers <= 0:
         raise ValueError("workers must be positive")
     if args.max_records is not None and args.max_records <= 0:
         raise ValueError("max_records must be positive when provided")
+    if (
+        args.per_context_timeout_seconds is not None
+        and args.per_context_timeout_seconds <= 0
+    ):
+        raise ValueError("per-context-timeout-seconds must be positive when provided")
     if not args.coref_script.is_file():
         raise FileNotFoundError(f"Coreferee script not found: {args.coref_script}")
     missing = [str(path) for path in args.inputs if not path.is_file()]
@@ -213,6 +298,8 @@ def main(argv: Iterable[str] | None = None) -> int:
             workers=args.workers,
             records_per_shard=args.records_per_shard,
             max_records=args.max_records,
+            per_context_timeout_seconds=args.per_context_timeout_seconds,
+            reuse_complete=args.reuse_complete,
         )
         for path in args.inputs
     ]
@@ -222,6 +309,8 @@ def main(argv: Iterable[str] | None = None) -> int:
         "workers_per_input": args.workers,
         "records_per_shard": args.records_per_shard,
         "max_records_per_input": args.max_records,
+        "per_context_timeout_seconds": args.per_context_timeout_seconds,
+        "reuse_complete": args.reuse_complete,
         "inputs": reports,
     }
     args.manifest.parent.mkdir(parents=True, exist_ok=True)

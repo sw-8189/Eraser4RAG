@@ -12,7 +12,10 @@ import json
 import logging
 import os
 import platform
+import signal
+import threading
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +28,38 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+class CorefereeContextTimeout(TimeoutError):
+    """Raised when a single Coreferee context exceeds its configured budget."""
+
+
+@contextmanager
+def _context_timeout(seconds: float | None) -> Iterator[None]:
+    """Bound one Coreferee call on Unix without changing the default behavior."""
+
+    if seconds is None:
+        yield
+        return
+    if not hasattr(signal, "SIGALRM") or not hasattr(signal, "setitimer"):
+        raise RuntimeError("Per-context timeouts require Unix signal.setitimer support")
+    if threading.current_thread() is not threading.main_thread():
+        raise RuntimeError("Per-context timeouts must run on the main thread")
+
+    def _raise_timeout(signum: int, frame: Any) -> None:
+        del signum, frame
+        raise CorefereeContextTimeout(
+            f"Coreferee exceeded the {seconds:g}-second per-context limit"
+        )
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    signal.signal(signal.SIGALRM, _raise_timeout)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
 
 
 def _safe_parent(path: str) -> None:
@@ -149,6 +184,7 @@ def main(args: argparse.Namespace) -> dict[str, Any]:
     _safe_parent(output_path)
     processed_records = 0
     processed_contexts = 0
+    timed_out_contexts: list[dict[str, Any]] = []
     with open(output_path, "w", encoding="utf-8") as fout:
         for record_index, data_each in enumerate(
             iter_data(
@@ -172,7 +208,22 @@ def main(args: argparse.Namespace) -> dict[str, Any]:
                     raise TypeError(
                         f"Record {record_index} ctx {context_index} has non-string text"
                     )
-                example["text"] = coref_text(coref_nlp, text)
+                try:
+                    with _context_timeout(args.per_context_timeout_seconds):
+                        example["text"] = coref_text(coref_nlp, text)
+                except CorefereeContextTimeout:
+                    source_index = args.start_samples + record_index - 1
+                    timeout_record = {
+                        "id": str(data_each.get("id", f"record-{source_index}")),
+                        "source_index": source_index,
+                        "context_index": context_index,
+                    }
+                    timed_out_contexts.append(timeout_record)
+                    logger.warning(
+                        "Timed out resolving record %s, context %d; preserving original text",
+                        timeout_record["id"],
+                        context_index,
+                    )
                 processed_contexts += 1
 
             json.dump(data_each, fout, ensure_ascii=False)
@@ -194,6 +245,9 @@ def main(args: argparse.Namespace) -> dict[str, Any]:
         "contexts": processed_contexts,
         "max_samples": args.max_samples,
         "start_samples": args.start_samples,
+        "per_context_timeout_seconds": args.per_context_timeout_seconds,
+        "timed_out_contexts": len(timed_out_contexts),
+        "timeout_records": timed_out_contexts,
     }
     metadata_path = args.metadata_output or f"{output_path}.meta.json"
     _safe_parent(metadata_path)
@@ -226,6 +280,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max_samples", type=int, default=None)
     parser.add_argument("--start_samples", type=int, default=0)
     parser.add_argument(
+        "--per-context-timeout-seconds",
+        type=float,
+        default=None,
+        help="Optional Unix timeout for each context; preserve original text on timeout",
+    )
+    parser.add_argument(
         "--metadata_output",
         default=None,
         help="Optional metadata JSON path; defaults to <output>.meta.json",
@@ -234,4 +294,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 if __name__ == "__main__":
-    main(build_parser().parse_args())
+    parsed_args = build_parser().parse_args()
+    if (
+        parsed_args.per_context_timeout_seconds is not None
+        and parsed_args.per_context_timeout_seconds <= 0
+    ):
+        raise ValueError("per-context-timeout-seconds must be positive when provided")
+    main(parsed_args)
