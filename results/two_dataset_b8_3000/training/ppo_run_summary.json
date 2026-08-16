@@ -1,0 +1,119 @@
+{
+  "schema": "eraser4rag-ppo-run-summary-v1",
+  "run_name": "two_dataset_b8_3000",
+  "timezone": "Asia/Shanghai",
+  "first_step_at": "2026-08-15T10:16:54.749+08:00",
+  "last_update_at": "2026-08-15T22:10:23.553+08:00",
+  "final_checkpoint_at": "2026-08-15T22:10:28.348+08:00",
+  "final_checkpoint": "output_checkpoint/RL-two-dataset-b8-3000/step_final",
+  "steps": 3000,
+  "overall": {
+    "mean_reward": 0.12169280266666667,
+    "mean_r_pub": 0.21285371166666667,
+    "mean_r_pri": 0.09708566,
+    "mean_kl": 1.5448935732468962,
+    "mean_update_seconds": 8.148526
+  },
+  "p_phases": [
+    {
+      "p": 20,
+      "first_step": 1,
+      "last_step": 349,
+      "steps": 349,
+      "mean_reward": 0.11561134957020057,
+      "mean_r_pub": 0.21656967621776507,
+      "mean_r_pri": 0.11009031518624642,
+      "mean_kl": 3.9061411821995904,
+      "mean_update_seconds": 8.15322922636103
+    },
+    {
+      "p": 25,
+      "first_step": 350,
+      "last_step": 699,
+      "steps": 350,
+      "mean_reward": 0.12412451142857142,
+      "mean_r_pub": 0.2131646542857143,
+      "mean_r_pri": 0.09058790285714285,
+      "mean_kl": 2.031364619093282,
+      "mean_update_seconds": 8.146582857142857
+    },
+    {
+      "p": 30,
+      "first_step": 700,
+      "last_step": 1049,
+      "steps": 350,
+      "mean_reward": 0.12291186571428572,
+      "mean_r_pub": 0.20598091714285716,
+      "mean_r_pri": 0.08918466285714287,
+      "mean_kl": 1.4817859247752598,
+      "mean_update_seconds": 8.144408571428572
+    },
+    {
+      "p": 35,
+      "first_step": 1050,
+      "last_step": 1399,
+      "steps": 350,
+      "mean_reward": 0.12345481714285715,
+      "mean_r_pub": 0.20902094000000002,
+      "mean_r_pri": 0.09530189428571428,
+      "mean_kl": 1.4539923203417233,
+      "mean_update_seconds": 8.154588571428572
+    },
+    {
+      "p": 40,
+      "first_step": 1400,
+      "last_step": 3000,
+      "steps": 1601,
+      "mean_reward": 0.12183518363522798,
+      "mean_r_pub": 0.21431607682698314,
+      "mean_r_pri": 0.097788506558401,
+      "mean_kl": 0.9574874732538657,
+      "mean_update_seconds": 8.147500312304809
+    }
+  ],
+  "startup_configuration": {
+    "config": "configs/reproduction.yaml",
+    "data": {
+      "dataset_records": 10000,
+      "sampled_records": 10000,
+      "contexts_seen": 100000,
+      "contexts_filtered": 58716,
+      "flattened_examples": 41284,
+      "files": [
+        {
+          "path": "dataset/sample_privacy/two_dataset_v1_timeout120/rl/popqa_train_rl.jsonl",
+          "records": 5000,
+          "selected": 5000
+        },
+        {
+          "path": "dataset/sample_privacy/two_dataset_v1_timeout120/rl/hotpotqa_train_rl.jsonl",
+          "records": 5000,
+          "selected": 5000
+        }
+      ]
+    },
+    "batch_size": 8,
+    "mini_batch_size": 4,
+    "ppo_epochs": 4,
+    "gamma": 0.99,
+    "learning_rate": 1e-05,
+    "initial_p": 20,
+    "p_schedule": {
+      "interval": 350,
+      "increment": 5,
+      "maximum": 40
+    },
+    "max_steps": 3000,
+    "model": "output_checkpoint/SFT",
+    "tokenizer": "output_checkpoint/SFT",
+    "relik": "models/relik",
+    "relik_consistency_gate": {
+      "report": "outputs/relik_consistency/report.json",
+      "manifest": "outputs/relik_consistency/sample_indices.json",
+      "status": "pass",
+      "sample_count": 500,
+      "warning_override": false
+    },
+    "dry_run": false
+  }
+}

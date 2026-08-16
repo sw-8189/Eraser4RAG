@@ -1,27 +1,18 @@
-# AutoDL Runbook: Eraser4RAG v2 Core Reproduction
+# AutoDL 运行手册
 
-This runbook begins after the local P0–P7 preparation passes. It deliberately
-uses two environments and enforces the ReLiK consistency gate before full PPO.
-Commands assume the repository root as the working directory.
+本文档说明如何在新的 AutoDL 实例上恢复本仓库的 PopQA + HotpotQA 两数据集实验，以及如何继续使用已经完成的云端产物。命令默认在仓库根目录执行。
 
-## 1. Obtain the prepared branch
+## 1. 获取代码
 
 ```bash
-git clone https://github.com/sw-8189/Eraser4RAG.git Eraser4RAG
+cd /root/autodl-tmp
+git clone https://github.com/sw-8189/Eraser4RAG.git
 cd Eraser4RAG
-git checkout reproduce-v2
+git checkout main
 git rev-parse HEAD
 ```
 
-The `reproduce-v2` branch contains the prepared workflow and the public result
-summary. Confirm that the checked-out commit includes
-`scripts/run_two_dataset_ppo.sh` and `results/two_dataset_b8_3000/` before
-starting a new run.
-
-## 2. Put environments and caches on the data disk
-
-AutoDL's system disk is small. Keep environments, package caches, model
-snapshots, and temporary files under the persistent data disk:
+`main` 与 `reproduce-v2` 保存同一份正式交付。环境、缓存、模型和 checkpoint 都放在 `/root/autodl-tmp`，避免占满系统盘：
 
 ```bash
 export ERASER_DATA_ROOT=/root/autodl-tmp
@@ -34,375 +25,109 @@ mkdir -p "$CONDA_PKGS_DIRS" "$PIP_CACHE_DIR" "$HF_HOME" "$TMPDIR" \
 source /root/miniconda3/etc/profile.d/conda.sh
 ```
 
-These exports must be repeated after reconnecting unless they are added to the
-shell startup file. The commands below use prefix environments so that they
-remain on the data disk.
+## 2. 创建主环境
 
-## 3. Create the main environment
+主环境用于 SFT、ReLiK、PPO、改写和指标评估：
 
 ```bash
-conda create -p "$ERASER_DATA_ROOT/conda/envs/eraser-main" python=3.10.14 -y
-conda activate "$ERASER_DATA_ROOT/conda/envs/eraser-main"
+conda create -p /root/autodl-tmp/conda/envs/eraser-main python=3.10.14 -y
+conda activate /root/autodl-tmp/conda/envs/eraser-main
+pip install torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements/eraser-main.txt
+
+curl -L --fail --retry 8 --retry-delay 3 -C - \
+  -o /root/autodl-tmp/model_wheels/en_core_web_sm-3.7.1-py3-none-any.whl \
+  https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+pip install --no-deps \
+  /root/autodl-tmp/model_wheels/en_core_web_sm-3.7.1-py3-none-any.whl
+
+pip check
+python scripts/check_environment.py --mode main --cpu-only
 ```
 
-Check the image and driver first:
+切换到有 GPU 的实例后再执行完整检查：
 
 ```bash
 nvidia-smi
-```
-
-This reconstruction targets Torch 2.3.1 with the CUDA 12.1 wheel. Install it
-only on an AutoDL image whose NVIDIA driver supports CUDA 12.1, then install
-the pinned top-level dependencies:
-
-```bash
-pip install torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121
-```
-
-```bash
-pip install -r requirements/eraser-main.txt
-pip check
-
-curl -L --fail --retry 8 --retry-delay 3 -C - \
-  -o "$ERASER_DATA_ROOT/model_wheels/en_core_web_sm-3.7.1-py3-none-any.whl" \
-  https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
-python -m zipfile -t \
-  "$ERASER_DATA_ROOT/model_wheels/en_core_web_sm-3.7.1-py3-none-any.whl"
-pip install --no-deps \
-  "$ERASER_DATA_ROOT/model_wheels/en_core_web_sm-3.7.1-py3-none-any.whl"
-
-# Valid in AutoDL no-GPU mode:
-python scripts/check_environment.py --mode main --cpu-only
-
-# Repeat this GPU gate after switching to a GPU instance:
 python scripts/check_environment.py --mode main
-pip freeze > requirements/eraser-main-lock.txt
 ```
 
-Expected critical versions include Transformers 4.41.2, TRL 0.11.4, ReLiK
-1.0.7, spaCy 3.7.5, and Torch 2.3.1. Do not upgrade TRL or Transformers.
+关键版本为 Python 3.10.14、Torch 2.3.1+cu121、Transformers 4.41.2、TRL 0.11.4、ReLiK 1.0.7 和 spaCy 3.7.5。不要单独升级 Transformers 或 TRL。
 
-The verified SHA-256 of the spaCy model wheel is
-`86cc141f63942d4b2c5fcee06630fd6f904788d2f0ab005cce45aadb8fb73889`.
+## 3. 创建 Coreferee 环境
 
-## 4. Create the coreference environment
+Coreferee 与 ReLiK 的 spaCy 依赖冲突，因此使用独立环境：
 
 ```bash
-conda create -p "$ERASER_DATA_ROOT/conda/envs/eraser-coref" python=3.10.14 -y
-conda activate "$ERASER_DATA_ROOT/conda/envs/eraser-coref"
+conda create -p /root/autodl-tmp/conda/envs/eraser-coref python=3.10.14 -y
+conda activate /root/autodl-tmp/conda/envs/eraser-coref
 pip install -r requirements/eraser-coref.txt
 
 curl -L --fail --retry 8 --retry-delay 3 -C - \
-  -o "$ERASER_DATA_ROOT/model_wheels/en_core_web_lg-3.5.0-py3-none-any.whl" \
+  -o /root/autodl-tmp/model_wheels/en_core_web_lg-3.5.0-py3-none-any.whl \
   https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.5.0/en_core_web_lg-3.5.0-py3-none-any.whl
-python -m zipfile -t \
-  "$ERASER_DATA_ROOT/model_wheels/en_core_web_lg-3.5.0-py3-none-any.whl"
 pip install --no-deps \
-  "$ERASER_DATA_ROOT/model_wheels/en_core_web_lg-3.5.0-py3-none-any.whl"
+  /root/autodl-tmp/model_wheels/en_core_web_lg-3.5.0-py3-none-any.whl
 
-# Coreferee's built-in installer follows the mutable master branch. Pin the
-# exact upstream commit containing the English model instead.
 curl -L --fail --retry 8 --retry-delay 3 -C - \
-  -o "$ERASER_DATA_ROOT/model_wheels/coreferee_model_en.zip" \
+  -o /root/autodl-tmp/model_wheels/coreferee_model_en.zip \
   https://raw.githubusercontent.com/richardpaulhudson/coreferee/aeb42a447484ad019fef4ea2dc6f5c952af29794/models/coreferee_model_en.zip
-python -m zipfile -t "$ERASER_DATA_ROOT/model_wheels/coreferee_model_en.zip"
-rm -rf "$TMPDIR/coreferee_model_en"
-mkdir -p "$TMPDIR/coreferee_model_en"
-unzip -q "$ERASER_DATA_ROOT/model_wheels/coreferee_model_en.zip" \
-  -d "$TMPDIR/coreferee_model_en"
-pip install --no-deps --force-reinstall "$TMPDIR/coreferee_model_en"
-rm -rf "$TMPDIR/coreferee_model_en"
+mkdir -p /root/autodl-tmp/tmp/coreferee_model_en
+unzip -q /root/autodl-tmp/model_wheels/coreferee_model_en.zip \
+  -d /root/autodl-tmp/tmp/coreferee_model_en
+pip install --no-deps --force-reinstall /root/autodl-tmp/tmp/coreferee_model_en
 
 pip check
-
-# The 2 GB no-GPU container can verify all package/model versions safely:
 python scripts/check_environment.py --mode coref --skip-pipeline-load
+```
 
-# Run the real large spaCy + Coreferee pipeline after switching back to a GPU
-# instance (the pipeline uses CPU, but that instance has a higher RAM limit):
+无卡模式通常只有 2 GiB 内存，只做版本检查。加载 `en_core_web_lg` 和 Coreferee 的完整检查应在 GPU 实例上执行：
+
+```bash
 python scripts/check_environment.py --mode coref
 ```
 
-Coreference inference itself runs on CPU. However, AutoDL's 2 GB no-GPU cgroup
-is too small to load `en_core_web_lg` and Coreferee together while VS Code and
-the platform services are running; the process was killed at that boundary.
-Use no-GPU mode for download, installation, and the version gate, then repeat
-the full pipeline check on the GPU instance. The fixed Coreferee model commit
-is an engineering reproducibility pin; the package's default command,
-`python -m coreferee install en`, is deliberately not used because it downloads
-from a floating branch.
+## 4. 无卡与有卡阶段
 
-Verified download SHA-256 values:
+| 阶段 | 无卡模式 | GPU 实例 |
+| --- | --- | --- |
+| clone、下载、解压、静态测试 | 可用 | 可用 |
+| 主环境 CPU 检查 | 可用 | 可用 |
+| Coreferee 完整加载与批处理 | 内存通常不足 | 使用 CPU，但需要 GPU 实例提供的较大内存 |
+| SFT、ReLiK、PPO、模型改写和指标提取 | 不可用 | 必须 |
+| 查看、压缩和同步已有结果 | 可用 | 可用 |
 
-```text
-en_core_web_lg-3.5.0-py3-none-any.whl
-c8ac64840c1eb3e3ca7bd38bd1e1c48fb0faeb2449d54d01d5ce629af4595775
+## 5. 下载固定模型
 
-coreferee_model_en.zip
-aec5662b4af38fbf4b8c67e4aada8b828c51d4a224b5e08f7b2b176c02d8780f
-```
-
-After the real pipeline check passes, capture the resolved environment:
+回到主环境：
 
 ```bash
-pip freeze > requirements/eraser-coref-lock.txt
+conda activate /root/autodl-tmp/conda/envs/eraser-main
+python scripts/download_models.py --stage sft
+python scripts/download_models.py --stage relik
+python scripts/verify_models.py --stage sft --model models/sft --device cpu
+python scripts/verify_models.py --stage relik --model models/relik --device cuda
 ```
 
-Return to the main environment for all steps except raw retrieved-document
-coreference cleaning:
+模型 revision 在 `configs/reproduction.yaml` 中固定。下载 manifest 位于各模型目录，后续可在离线模式运行。
+
+## 6. 恢复 SFT 数据
 
 ```bash
-conda activate "$ERASER_DATA_ROOT/conda/envs/eraser-main"
-```
-
-Run a stage preflight whenever the workspace changes. A nonzero exit is a hard
-stop, with every missing artifact listed in JSON:
-
-```bash
-python scripts/autodl_preflight.py --stage sft
-python scripts/autodl_preflight.py --stage ppo
-python scripts/autodl_preflight.py --stage full
-```
-
-## 5. Place and validate the author SFT dataset
-
-Expected path:
-
-```text
-dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl
-```
-
-On a fresh clone the tracked input is the archive
-`dataset/constructed_dataset/popqa_10_25_filtered_new.rar`; the JSONL is
-ignored because it is a generated large artifact. Restore it before validation:
-
-```bash
-# RAR5 archives require a recent native RAR extractor on Ubuntu 22.04.
-command -v unrar >/dev/null || \
-  (apt-get update && apt-get install -y unrar)
 python scripts/restore_sft_dataset.py
-```
-
-The script verifies the archive SHA-256 and refuses to overwrite a mismatching
-existing JSONL. The expected archive SHA-256 is
-`b32d7e45c457d27e398b69d58678fea5bc40271445d798c494c016a119493186`.
-The restored JSONL must match
-`c215e99f5e70b8cab8fa3631fb3b8708b90506527bc5d350fa6f8d658dcb9f36`.
-
-Validate every row before model work:
-
-```bash
 python scripts/validate_sft_dataset.py \
   --data dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl \
   --output-dir outputs/validation
 ```
 
-Both JSON and Markdown reports must say `PASS`. Preserve the report with the
-experiment artifacts.
+正式输入应为 23,074 条。归档文件已在 Git 中，解压后的 108 MiB JSONL 不进入 Git。
 
-## 6. Download and verify only the first required models
-
-The repository configuration freezes one immutable commit for each model as
-of 2026-08-12. These commits are an engineering reconstruction choice because
-the paper/public snapshot did not report Hub revisions. The downloader reads
-them automatically and records the same SHA in each model manifest:
-
-```bash
-python scripts/download_models.py --stage sft
-python scripts/download_models.py --stage relik
-python scripts/verify_models.py --stage sft --model models/sft \
-  --load-model --device cuda
-python scripts/verify_models.py --stage relik --model models/relik --device cuda
-```
-
-Each model directory must contain `download_manifest.json` with the resolved
-immutable revision. If a commit cannot be chosen in advance, the explicit
-`--allow-floating-revision` option resolves the current head once and records
-it; this is a documented fallback, not the formal default.
-
-For the Flan stages, the downloader intentionally fetches only configuration,
-tokenizer files, and `model.safetensors`. PyTorch does not need the duplicate
-`pytorch_model.bin`, TensorFlow, or Flax weights. An interrupted local-dir
-download resumes only when its Hub metadata identifies the same immutable
-commit and every completed visible file belongs to that stage's allow-list.
-
-Flan-T5-base is optional for API smoke tests:
-
-```bash
-python scripts/download_models.py --stage smoke
-python scripts/verify_models.py --stage smoke --model models/smoke --load-model
-```
-
-Do not download Llama 3 at this stage.
-
-## 7. Mandatory ReLiK consistency gate
-
-### 6.1 Fixed 50-sample smoke
-
-```bash
-python scripts/validate_relik_consistency.py \
-  --data dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl \
-  --relik-model models/relik \
-  --sample-size 50 \
-  --seed 42 \
-  --device cuda \
-  --output-dir outputs/relik_consistency/smoke
-```
-
-Review loading, triple formatting, and mismatch output even if recall is low.
-
-### 6.2 Fixed 500-sample formal engineering gate
-
-```bash
-python scripts/validate_relik_consistency.py \
-  --data dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl \
-  --relik-model models/relik \
-  --sample-size 500 \
-  --seed 42 \
-  --device cuda \
-  --output-dir outputs/relik_consistency
-```
-
-Required artifacts:
-
-```text
-outputs/relik_consistency/report.json
-outputs/relik_consistency/report.md
-outputs/relik_consistency/mismatches.jsonl
-outputs/relik_consistency/sample_indices.json
-```
-
-The 0.80 value is an engineering warning threshold, not a paper threshold. If
-any key recall is materially below it, stop and check model ID/revision,
-`relik==1.0.7`, `use_nme`, duplicate rules, relation labels, and serialization.
-Do not launch full PPO without a reviewed 500-sample report.
-
-## 8. SFT smoke and full SFT
-
-First run a short Flan-T5-large smoke:
-
-```bash
-python finetune_rewrite_doc.py \
-  --data-dir dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl \
-  --model-dir models/sft \
-  --tokenizer-dir models/sft \
-  --output-dir output_checkpoint/SFT-smoke \
-  --max-samples 100 \
-  --seed 42 \
-  --smoke-test
-```
-
-Verify forward/backward, eval, save, and reload. Then run the formal settings:
-
-Each completed SFT output contains `training_manifest.json` with the source
-model revision, dataset SHA-256, effective settings, metrics, special-token
-contract, and model/tokenizer hashes. Verify a saved smoke checkpoint with:
-
-```bash
-python scripts/verify_models.py --stage sft \
-  --model output_checkpoint/SFT-smoke --training-checkpoint \
-  --load-model --device cuda
-```
-
-```bash
-python finetune_rewrite_doc.py \
-  --data-dir dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl \
-  --model-dir models/sft \
-  --tokenizer-dir models/sft \
-  --output-dir output_checkpoint/SFT \
-  --seed 42
-```
-
-Formal defaults are epochs 3, lr `5e-5`, input length 1300, and target length
-128. Resume only from a checkpoint created by the same model/tokenizer setup:
-
-For a disconnect-safe formal run on images with GNU Screen:
-
-```bash
-screen -dmS eraser-sft-full bash scripts/run_sft_full.sh
-screen -ls
-tail -f logs/sft-full/train.log
-```
-
-Detaching the SSH or VS Code session does not stop this job. The launcher
-refuses to overwrite `output_checkpoint/SFT` and records run metadata plus the
-eventual process exit code under `logs/sft-full/`.
-
-```bash
-python finetune_rewrite_doc.py <same-arguments> \
-  --resume-from-checkpoint output_checkpoint/SFT/checkpoint-<step>
-```
-
-## 9. PPO engineering smoke from the SFT file
-
-Build and validate the explicitly reconstructed smoke corpus:
-
-```bash
-python scripts/build_popqa_rl_from_sft.py \
-  --data dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl \
-  --output outputs/smoke/popqa_regrouped_author_sft_rl.jsonl \
-  --max-groups 100 \
-  --force
-
-python scripts/validate_rl_dataset.py \
-  --data outputs/smoke/popqa_regrouped_author_sft_rl.jsonl \
-  --output-dir outputs/validation
-```
-
-This dataset is for engineering smoke only. It has no author query/answer IDs.
-
-Dry-run data loading without model initialization:
-
-```bash
-python RL_train.py \
-  --data-dir-1 outputs/smoke/popqa_regrouped_author_sft_rl.jsonl \
-  --data-dir-2 "" --data-dir-3 "" --data-dir-4 "" \
-  --max-samples 16 --batch-size 16 --dry-run
-```
-
-Then test generation, reward, one update, and ten updates in order:
-
-```bash
-python RL_train.py <same-data-arguments> \
-  --model-dir output_checkpoint/SFT \
-  --tokenizer-dir output_checkpoint/SFT \
-  --relik-model models/relik \
-  --relik-consistency-report outputs/relik_consistency/report.json \
-  --max-samples 16 --batch-size 16 --generate-only
-
-python RL_train.py <same-data-and-model-arguments> \
-  --max-samples 16 --batch-size 16 --reward-only
-
-python RL_train.py <same-data-and-model-arguments> \
-  --max-samples 16 --batch-size 16 --max-steps 1 \
-  --output-dir output_checkpoint/RL-smoke-1
-
-python RL_train.py <same-data-and-model-arguments> \
-  --max-samples 160 --batch-size 16 --max-steps 10 \
-  --output-dir output_checkpoint/RL-smoke-10
-```
-
-Replace the `<same-...-arguments>` placeholders with the exact arguments from
-the preceding complete command when creating shell scripts or job manifests.
-
-## 10. Build the formal four-dataset PPO data
-
-### Verified reduced PopQA + HotpotQA source path
-
-The completed core experiment used two explicitly pinned public sources:
-
-```text
-MinaGabriel/popqa-with-retrieval-20@dcc3f4f72fab2f7bca386c51e5cf329109727919
-hotpotqa/hotpot_qa@1908d6afbbead072334abe2965f91bd2709910ab
-```
-
-Download each split to ignored Parquet files, then build and validate the
-deterministic 5,000-train / 1,000-eval, top-10 inputs:
+## 7. 下载并构造两数据集检索输入
 
 ```bash
 python scripts/download_reduced_qa_sources.py \
   --output-dir dataset/source_data/two_dataset_v1 \
-  --cache-dir "$HF_HOME/datasets" \
+  --cache-dir /root/autodl-tmp/hf_cache/datasets \
   --manifest outputs/manifests/two_dataset_sources.json
 
 python scripts/prepare_reduced_retrieval_data.py \
@@ -417,116 +142,70 @@ python scripts/validate_retrieved_data.py \
   --data dataset/retrieved_data/two_dataset_v1/*.jsonl \
   --expected-contexts 10 \
   --output outputs/validation/two_dataset_retrieval.json
-
-screen -dmS eraser-two-data bash scripts/run_two_dataset_timeout120.sh
 ```
 
-The PopQA source contains third-party pre-retrieved top-20 passages, which are
-truncated to top 10. HotpotQA uses official distractor contexts, and records
-with fewer than ten contexts are excluded before deterministic selection.
-These are declared retrieval deviations, not reconstructed paper retrieval.
+生成四个文件：PopQA/HotpotQA 各 5,000 条 train 和 1,000 条 eval，每条保留 10 个 context。
 
-### Full paper four-dataset path
+## 8. Coreferee、ReLiK 和 RL 数据
 
-Download Contriever only when the pinned corpus/index preparation begins:
+在 GPU 实例上用持久会话启动：
 
 ```bash
-python scripts/download_models.py --stage retrieval
-python scripts/verify_models.py --stage retrieval --model models/retrieval \
-  --device cuda
+screen -dmS eraser-two-data bash scripts/run_two_dataset_timeout120.sh
+screen -ls
+tail -f logs/coref/two_dataset_v1_timeout120/full.log
 ```
 
-The required chain is:
+该入口按顺序执行：
+
+1. Coreferee 分片清洗；单个 context 最长 120 秒，超时保留原文并记录。
+2. ReLiK CUDA 三元组抽取。
+3. 按种子 42 进行 25% 隐私采样和图处理。
+4. 生成并严格验证四个 RL JSONL。
+
+验收文件：
 
 ```text
-PopQA / TriviaQA / NQ-Open / HotpotQA
--> query and answers
--> Contriever-MS MARCO over a pinned Wikipedia corpus, top 10
--> eraser-coref cleaning
--> eraser-main ReLiK extraction
--> global graph merge
--> seeded 25% privacy sampling and connectivity filtering
--> global-to-local mapping
--> validated RL JSONL
+dataset/retrieved_data/two_dataset_v1_timeout120_relik/*_with_triplets.jsonl
+dataset/sample_privacy/two_dataset_v1_timeout120/rl/*_rl.jsonl
+outputs/manifests/coreferee_two_dataset_v1_timeout120.json
+outputs/manifests/relik_two_dataset_v1_timeout120.json
+outputs/manifests/rl_postprocess_two_dataset_v1_timeout120.json
 ```
 
-The public snapshot does not include a complete pinned Wikipedia retrieval and
-index build entry point. Record the corpus snapshot, passage segmentation,
-index revision, retrieval commit, and document IDs before continuing. Do not
-substitute arbitrary QA contexts and call them the formal corpus.
+正式 ReLiK 压缩产物也已收入 `results/two_dataset_b8_3000/artifacts/relik/`，可用 `scripts/verify_result_artifacts.py` 校验并恢复。
 
-For already retrieved files, coreference runs only in `eraser-coref`:
+## 9. ReLiK 一致性门禁
 
 ```bash
-conda activate eraser-coref
-python dataset/retrieved_data/clean_retrieved.py --help
-# Run once per dataset with explicit --input/--output paths.
-```
-
-Switch back for ReLiK and graph processing:
-
-```bash
-conda activate eraser-main
-python dataset/to_triplets/RELIK_re.py --help
-python utils/process_triplets.py --help
-python utils/add_sampled_data.py --help
-```
-
-Validate each final corpus with QA fields required:
-
-```bash
-python scripts/validate_rl_dataset.py --data <dataset>.jsonl \
-  --require-qa --output-dir outputs/validation
-```
-
-## 11. Formal PPO gate and launch
-
-Before full PPO, all of these must exist or pass:
-
-- main `pip check` and environment checker;
-- ReLiK minimal inference;
-- SFT dataset validation;
-- reviewed 50- and 500-sample consistency reports;
-- Flan-T5-large SFT smoke and full SFT checkpoint;
-- PPO generate, reward, 1-step, and 10-step smoke;
-- four validated formal RL datasets.
-
-Formal launch template:
-
-```bash
-python RL_train.py \
-  --data-dir-1 dataset/sample_privacy/popqa_10_25_trp.jsonl \
-  --data-dir-2 dataset/sample_privacy/triviaqa_10_25_trp.jsonl \
-  --data-dir-3 dataset/sample_privacy/NQ-open_10_25_trp.jsonl \
-  --data-dir-4 dataset/sample_privacy/hotpotqa_10_25_trp.jsonl \
-  --model-dir output_checkpoint/SFT \
-  --tokenizer-dir output_checkpoint/SFT \
+conda activate /root/autodl-tmp/conda/envs/eraser-main
+python scripts/validate_relik_consistency.py \
+  --data dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl \
   --relik-model models/relik \
-  --output-dir output_checkpoint/RL \
-  --seed 42 \
-  --batch-size 16 \
-  --mini-batch-size 8 \
-  --ppo-epochs 4 \
-  --gamma 0.99 \
-  --max-steps 200000
+  --sample-size 500 --seed 42 --device cuda \
+  --output-dir outputs/relik_consistency
 ```
 
-The paper does not report a definitive PPO stopping count. The configured
-200,000 outer updates are an explicit reconstruction choice; preserve the
-value in each run manifest and do not present it as an author-reported setting.
+本次正式报告为 `pass`，public/private micro recall 分别为 0.9536468984 和 0.9653130288。非 dry-run PPO 会检查这份 500 样本报告。
 
-The training log must show `p=20,25,30,35,40` at the documented boundaries and
-must never show 45.
+## 10. 正式 SFT
 
-`RL_train.py` enforces the consistency report and its sample manifest before
-any non-dry model run. A `WARNING` report stops execution unless the mismatch
-has been reviewed, documented, and `--allow-relik-gate-warning` is supplied.
+```bash
+screen -dmS eraser-sft-full bash scripts/run_sft_full.sh
+screen -ls
+tail -f logs/sft-full/train.log
+```
 
-### Verified two-dataset core run
+参数为 Flan-T5-large、3 epochs、learning rate `5e-5`、输入长度 1300、目标长度 128、seed 42。完成条件：
 
-The completed reduced experiment used PopQA and HotpotQA only, with 5,000
-training records from each dataset. Its exact defaults are captured by a
-parameterized launcher:
+```bash
+test -s output_checkpoint/SFT/model.safetensors
+test -s output_checkpoint/SFT/training_manifest.json
+```
+
+本次 SFT 的 `train_runtime` 为 18,781.7946 秒。
+
+## 11. 正式 PPO
 
 ```bash
 export MAIN_PYTHON=/root/autodl-tmp/conda/envs/eraser-main/bin/python
@@ -535,65 +214,97 @@ screen -ls
 tail -f logs/ppo/two_dataset_b8_3000/run.log
 ```
 
-This launcher uses batch 8, mini-batch 4, four PPO epochs, `gamma=0.99`, and
-3,000 exact outer updates. It saves every 500 updates and requires the reviewed
-500-sample ReLiK consistency gate. Batch 16 OOMed on the tested 48 GiB RTX 4090;
-batch 8 completed. The 3,000-update value is an experiment choice and does not
-replace the generic four-dataset reconstruction default above.
+默认参数为 batch 8、mini-batch 4、4 个 PPO epochs、`gamma=0.99`、3,000 个 outer steps。`p` 在 step 1–349 为 20，之后每 350 步加 5，step 1,400 起保持 40。48 GiB RTX 4090 已完成该配置；batch 16 会 OOM。
 
-## 12. Core evaluation and Llama 3
+新运行默认输出到 `output_checkpoint/RL-two_dataset_b8_3000/`。本次已完成云端运行使用的实际目录是：
 
-First produce rewritten documents, then compute `r_pri`, `r_pub`, and
-`r_connect` with explicit model/data/output arguments. Inspect current CLI help
-before each invocation:
-
-```bash
-python rewrite_docs_special.py --help
-python test_special.py --help
-python rewrite_docs_inferattack_inference.py --help
-python test_inferattack.py --help
+```text
+output_checkpoint/RL-two-dataset-b8-3000/step_final/
 ```
 
-For the verified PopQA + HotpotQA experiment, after constructing its held-out,
-`D_special`, and inference-attack inputs, run the complete final-policy rewrite
-and six-metric pass with:
+两者名称不同只源于当次启动时显式设置了 `OUTPUT_DIR`。完成条件是 `step_final/model.safetensors` 和 `step_final/config.json` 均存在。当前 launcher 不提供 PPO 自动断点续训，因此不要在训练期间关闭云实例。
+
+## 12. 训练后评估
+
+先生成 `D_special` 和 inference-attack 数据：
 
 ```bash
-export MAIN_PYTHON=/root/autodl-tmp/conda/envs/eraser-main/bin/python
 bash scripts/build_two_dataset_eval_sets.sh
+```
+
+若评估刚完成的新运行，直接执行：
+
+```bash
 screen -dmS eraser-eval-two bash scripts/run_two_dataset_eval.sh
+```
+
+若复用本次已有的云端 checkpoint，显式指定真实路径：
+
+```bash
+FINAL_CHECKPOINT=/root/autodl-tmp/Eraser4RAG/output_checkpoint/RL-two-dataset-b8-3000/step_final \
+  screen -dmS eraser-eval-two bash scripts/run_two_dataset_eval.sh
+```
+
+查看进度：
+
+```bash
 screen -ls
 tail -f logs/evaluation/two_dataset_b8_3000/*
 ```
 
-Machine-readable metrics are written under ignored `outputs/evaluation/`.
-The sanitized values, sample denominators, settings, and checkpoint hashes from
-the completed run are committed under `results/two_dataset_b8_3000/`.
+评估完成必须同时满足：
 
-Only after privacy/utility evaluation is stable should Llama 3 be downloaded:
-
-```bash
-python scripts/download_models.py --stage eval
-python scripts/verify_models.py --stage eval --model models/eval \
-  --load-model --device cuda
+```text
+outputs/evaluation/two_dataset_b8_3000/metrics/complete.txt
+outputs/evaluation/two_dataset_b8_3000/metrics/{popqa,hotpotqa}_{eval,special,inferattack}.json
 ```
 
-The current public snapshot does not contain a complete downstream Llama-3 QA
-evaluation entry point. Implementing or sourcing it must be recorded as a
-separate reconstruction before claiming paper RAG accuracy.
+launcher 会在写 `complete.txt` 前校验六个改写文件的记录数、有效分母和指标范围。
 
-## 13. Artifact and secret discipline
+## 13. 已完成云端产物
 
-Do not commit model weights, checkpoints, Wikipedia indexes, generated large
-JSONL files, `.env`, or access tokens. Preserve small manifests, config files,
-validation reports, exact commands, Git SHA, GPU model, CUDA/driver details,
-package locks, seeds, wall time, and checkpoint hashes with each experiment.
+云端项目根目录为 `/root/autodl-tmp/Eraser4RAG`，正式产物位置如下：
 
-## 14. Readiness boundary
+| 产物 | 相对路径 |
+| --- | --- |
+| SFT | `output_checkpoint/SFT/` |
+| PPO | `output_checkpoint/RL-two-dataset-b8-3000/step_final/` |
+| PPO 输入 | `dataset/sample_privacy/two_dataset_v1_timeout120/rl/` |
+| ReLiK 三元组 | `dataset/retrieved_data/two_dataset_v1_timeout120_relik/` |
+| 最终改写 | `outputs/evaluation/two_dataset_b8_3000/rewritten/` |
+| 指标 | `outputs/evaluation/two_dataset_b8_3000/metrics/` |
+| PPO 日志 | `logs/ppo/two_dataset_b8_3000/run.log` |
 
-The reduced PopQA + HotpotQA workflow, formal SFT, 3,000-step PPO run, and six
-ReLiK metrics have completed once on AutoDL. That result demonstrates the
-two-dataset core pipeline, not full paper reproduction. Formal TriviaQA and
-NQ-Open data, a pinned Wikipedia corpus and Contriever index, and the
-downstream Llama-3 QA evaluator must still exist and pass their checks before
-claiming reproduction of the paper's complete tables.
+其脱敏副本、训练曲线、ReLiK 三元组和最终改写压缩文件位于仓库的 `results/two_dataset_b8_3000/`。
+
+## 14. 会话与关机
+
+- SSH、浏览器或 VS Code 断开不会终止 `screen` 中的任务。
+- AutoDL 关机或释放实例会终止正在运行的进程。
+- SFT 可从 Trainer checkpoint 手动恢复；当前 PPO launcher 不自动续跑。
+- 无卡模式可查看和同步结果，但不能继续 GPU 推理或训练。
+- 只有看到对应完成文件并校验通过后，才能关机。
+
+常用命令：
+
+```bash
+screen -ls
+screen -r eraser-ppo-two
+# 在 screen 内按 Ctrl+A，再按 D，可退出但不终止任务
+```
+
+## 15. 最终检查
+
+```bash
+python -m pytest -q
+python -m compileall -q RL_train.py data_structure.py finetune_rewrite_doc.py \
+  rewrite_docs_special.py rewrite_docs_inferattack_inference.py scripts utils tests
+python scripts/verify_result_artifacts.py \
+  --artifact-dir results/two_dataset_b8_3000/artifacts/relik \
+  --manifest results/two_dataset_b8_3000/manifests/relik_two_dataset_v1_timeout120.json
+python scripts/verify_result_artifacts.py \
+  --artifact-dir results/two_dataset_b8_3000/artifacts/rewritten \
+  --manifest results/two_dataset_b8_3000/manifests/rewritten_outputs.json
+```
+
+算法、数据源和论文设置之间的差异见 `docs/REPRODUCTION_DEVIATIONS.md`。

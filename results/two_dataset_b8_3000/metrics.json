@@ -3,8 +3,15 @@
   "run_name": "two_dataset_b8_3000",
   "status": "completed",
   "completed_at": "2026-08-16T08:53:12+08:00",
-  "scope": "two-dataset core reproduction; not the complete four-dataset paper table",
-  "artifact_hash_manifest": "artifact_hashes.sha256",
+  "scope": "two-dataset core reproduction",
+  "source": {
+    "platform": "AutoDL",
+    "raw_metric_exports": "metrics/",
+    "run_manifests": "manifests/",
+    "training_records": "training/",
+    "relik_artifacts": "artifacts/relik/",
+    "rewritten_artifacts": "artifacts/rewritten/"
+  },
   "hardware": {
     "gpu": "NVIDIA GeForce RTX 4090",
     "vram_gib_approx": 48,

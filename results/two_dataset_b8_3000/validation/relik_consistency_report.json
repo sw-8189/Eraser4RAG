@@ -1,0 +1,492 @@
+{
+  "schema": "eraser4rag-relik-consistency-v1",
+  "data_path": "dataset/constructed_dataset/popqa_10_25_filtered_new.jsonl",
+  "relik_model": "models/relik",
+  "device": "cuda",
+  "use_nme": true,
+  "seed": 42,
+  "sample_indices_path": "outputs/relik_consistency/sample_indices.json",
+  "engineering_warning_threshold": 0.8,
+  "gate_status": "pass",
+  "metrics": {
+    "sample_count": 500,
+    "public_reference_count": 2934,
+    "private_reference_count": 1182,
+    "public_hit_count": 2798,
+    "private_hit_count": 1141,
+    "public_micro_recall": 0.9536468984321745,
+    "private_micro_recall": 0.9653130287648054,
+    "public_macro_recall": 0.9501093600843601,
+    "private_macro_recall": 0.9656111111111111,
+    "macro_public_document_count": 500,
+    "macro_private_document_count": 500,
+    "nonempty_reference_document_count": 500,
+    "zero_match_document_count": 1,
+    "zero_match_ratio": 0.002,
+    "fully_recovered_reference_document_count": 385,
+    "mismatch_document_count": 115
+  },
+  "top_mismatch_examples": [
+    {
+      "dataset_index": 16171,
+      "line_number": 16172,
+      "text_excerpt": " The Gambler The Gambler is a 1974 American mystery drama film written by James Toback and directed by Karel Reisz . Gambler stars James Caan , Paul Sorvino and Lauren Hutton . James Caan 's performance was widely lauded and was nominated for a Golden Globe . Axel Freed is a New York City Harvard University – educated English professor and author with a gambling addiction that begins to spiral out",
+      "reference_public_count": 10,
+      "reference_private_count": 9,
+      "predicted_count": 27,
+      "missing_public": [
+        "<subj>The Gambler The Gambler<rel>director<obj>Rupert Wyatt<e>",
+        "<subj>The Gambler<rel>director<obj>Rupert Wyatt<e>"
+      ],
+      "missing_private": [
+        "<subj>James Toback<rel>country<obj>United States<e>",
+        "<subj>The Gambler The Gambler<rel>publication date<obj>2014<e>",
+        "<subj>The Gambler<rel>author<obj>Dostoyevsky<e>",
+        "<subj>The Gambler<rel>publication date<obj>2014<e>"
+      ],
+      "extra_predicted": [
+        "<subj>Axel Freed<rel>languages spoken, written or signed<obj>English<e>",
+        "<subj>Gambler<rel>cast member<obj>Lauren Hutton<e>",
+        "<subj>Gambler<rel>cast member<obj>Paul Sorvino<e>",
+        "<subj>James Toback<rel>country<obj>American<e>",
+        "<subj>The Gambler The Gambler<rel>director<obj>Karel Reisz<e>",
+        "<subj>The Gambler The Gambler<rel>genre<obj>drama film<e>",
+        "<subj>The Gambler The Gambler<rel>publication date<obj>1974<e>",
+        "<subj>The Gambler<rel>author<obj>James Toback<e>",
+        "<subj>The Gambler<rel>cast member<obj>Lauren Hutton<e>",
+        "<subj>The Gambler<rel>cast member<obj>Paul Sorvino<e>",
+        "<subj>The Gambler<rel>country<obj>American<e>",
+        "<subj>The Gambler<rel>director<obj>Karel Reisz<e>",
+        "<subj>The Gambler<rel>genre<obj>drama film<e>",
+        "<subj>The Gambler<rel>publication date<obj>1974<e>"
+      ]
+    },
+    {
+      "dataset_index": 3169,
+      "line_number": 3170,
+      "text_excerpt": " Pilot \" Pilot \" is the first episode of the first season of the American period drama television series \" Masters of Sex \" . Pilot originally aired on September 29 , 2013 in the United States on Showtime . The episode was written by series creator Michelle Ashford and directed by John Madden . The series is based on Thomas Maier 's biography \" \" . The series opens in October 1956 at Washington Un",
+      "reference_public_count": 12,
+      "reference_private_count": 6,
+      "predicted_count": 20,
+      "missing_public": [
+        "<subj>Pilot<rel>director<obj>Gavin O'Connor<e>",
+        "<subj>Pilot<rel>publication date<obj>September 10 , 2017<e>"
+      ],
+      "missing_private": [
+        "<subj>Pilot<rel>author<obj>David Simon<e>",
+        "<subj>Pilot<rel>part of<obj>The Deuce<e>",
+        "<subj>first season<rel>original broadcaster<obj>FX<e>"
+      ],
+      "extra_predicted": [
+        "<subj>Pilot<rel>author<obj>Michelle Ashford<e>",
+        "<subj>Pilot<rel>director<obj>John Madden<e>",
+        "<subj>Pilot<rel>part of<obj>Masters of Sex<e>",
+        "<subj>Pilot<rel>part of<obj>first season<e>",
+        "<subj>Pilot<rel>publication date<obj>September 29 , 2013<e>",
+        "<subj>Washington University<rel>location<obj>Missouri<e>",
+        "<subj>first season<rel>original broadcaster<obj>Showtime<e>"
+      ]
+    },
+    {
+      "dataset_index": 4288,
+      "line_number": 4289,
+      "text_excerpt": " Pilot \" Pilot \" is the first episode of the FX crime drama television series The Shield . Pilot was written by series creator Shawn Ryan , directed by Clark Johnson , and originally aired on March 12 , 2002 . The episode received Emmy Award nominations for both episode writing and directing . The opening scene of the series consists of new LAPD Captain David Aceveda , of the infamous Farmington D",
+      "reference_public_count": 8,
+      "reference_private_count": 2,
+      "predicted_count": 11,
+      "missing_public": [
+        "<subj>Pilot<rel>author<obj>David Simon<e>",
+        "<subj>Pilot<rel>director<obj>Gavin O'Connor<e>",
+        "<subj>Pilot<rel>original broadcaster<obj>HBO<e>",
+        "<subj>Pilot<rel>part of<obj>The Deuce<e>",
+        "<subj>Pilot<rel>publication date<obj>September 10 , 2017<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Pilot<rel>author<obj>Shawn Ryan<e>",
+        "<subj>Pilot<rel>director<obj>Clark Johnson<e>",
+        "<subj>Pilot<rel>original broadcaster<obj>FX<e>",
+        "<subj>Pilot<rel>part of<obj>The Shield<e>",
+        "<subj>Pilot<rel>publication date<obj>March 12 , 2002<e>",
+        "<subj>new LAPD Captain David Aceveda<rel>employer<obj>LAPD<e>"
+      ]
+    },
+    {
+      "dataset_index": 10276,
+      "line_number": 10277,
+      "text_excerpt": " Pilot \" Pilot \" is the first episode of the FX crime drama television series The Shield . Pilot was written by series creator Shawn Ryan , directed by Clark Johnson , and originally aired on March 12 , 2002 . The episode received Emmy Award nominations for both episode writing and directing . The opening scene of the series consists of new LAPD Captain David Aceveda , of the infamous Farmington D",
+      "reference_public_count": 6,
+      "reference_private_count": 4,
+      "predicted_count": 11,
+      "missing_public": [
+        "<subj>Pilot<rel>part of<obj>The Deuce<e>",
+        "<subj>Pilot<rel>publication date<obj>September 10 , 2017<e>"
+      ],
+      "missing_private": [
+        "<subj>Pilot<rel>author<obj>David Simon<e>",
+        "<subj>Pilot<rel>director<obj>Gavin O'Connor<e>",
+        "<subj>Pilot<rel>original broadcaster<obj>HBO<e>"
+      ],
+      "extra_predicted": [
+        "<subj>Pilot<rel>author<obj>Shawn Ryan<e>",
+        "<subj>Pilot<rel>director<obj>Clark Johnson<e>",
+        "<subj>Pilot<rel>original broadcaster<obj>FX<e>",
+        "<subj>Pilot<rel>part of<obj>The Shield<e>",
+        "<subj>Pilot<rel>publication date<obj>March 12 , 2002<e>",
+        "<subj>new LAPD Captain David Aceveda<rel>employer<obj>LAPD<e>"
+      ]
+    },
+    {
+      "dataset_index": 10278,
+      "line_number": 10279,
+      "text_excerpt": " Pilot \" Pilot \" is the first episode of the first season of the American period drama television series \" Masters of Sex \" . Pilot originally aired on September 29 , 2013 in the United States on Showtime . The episode was written by series creator Michelle Ashford and directed by John Madden . The series is based on Thomas Maier 's biography \" \" . The series opens in October 1956 at Washington Un",
+      "reference_public_count": 12,
+      "reference_private_count": 6,
+      "predicted_count": 20,
+      "missing_public": [
+        "<subj>Pilot<rel>part of<obj>The Deuce<e>",
+        "<subj>Pilot<rel>publication date<obj>September 10 , 2017<e>",
+        "<subj>first season<rel>original broadcaster<obj>FX<e>"
+      ],
+      "missing_private": [
+        "<subj>Pilot<rel>author<obj>David Simon<e>",
+        "<subj>Pilot<rel>director<obj>Gavin O'Connor<e>"
+      ],
+      "extra_predicted": [
+        "<subj>Pilot<rel>author<obj>Michelle Ashford<e>",
+        "<subj>Pilot<rel>director<obj>John Madden<e>",
+        "<subj>Pilot<rel>part of<obj>Masters of Sex<e>",
+        "<subj>Pilot<rel>part of<obj>first season<e>",
+        "<subj>Pilot<rel>publication date<obj>September 29 , 2013<e>",
+        "<subj>Washington University<rel>location<obj>Missouri<e>",
+        "<subj>first season<rel>original broadcaster<obj>Showtime<e>"
+      ]
+    },
+    {
+      "dataset_index": 6591,
+      "line_number": 6592,
+      "text_excerpt": " Pilot \" Pilot \" is the pilot episode of the American legal comedy - drama \" Suits \" , which premiered on USA Network in the United States on June 23 , 2011 . The episode was written by series creator Aaron Korsh and was directed by Kevin Bray . The series revolves around two lawyers who , between the two of lawyers , have only one law degree . Harvey Specter is promoted to senior partner of the P",
+      "reference_public_count": 12,
+      "reference_private_count": 1,
+      "predicted_count": 15,
+      "missing_public": [
+        "<subj>Pilot<rel>author<obj>David Simon<e>",
+        "<subj>Pilot<rel>director<obj>Gavin O'Connor<e>",
+        "<subj>Pilot<rel>part of<obj>The Deuce<e>",
+        "<subj>Pilot<rel>publication date<obj>September 10 , 2017<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Pilot<rel>author<obj>Aaron Korsh<e>",
+        "<subj>Pilot<rel>director<obj>Kevin Bray<e>",
+        "<subj>Pilot<rel>part of<obj>Suits<e>",
+        "<subj>Pilot<rel>publication date<obj>June 23 , 2011<e>",
+        "<subj>Suits<rel>country<obj>United States<e>",
+        "<subj>USA Network<rel>country<obj>United States<e>"
+      ]
+    },
+    {
+      "dataset_index": 13825,
+      "line_number": 13826,
+      "text_excerpt": " We Are Family We Are Family is a 2010 Indian drama film directed by Siddharth Malhotra and produced by Karan Johar . The movie features Kajol , Arjun Rampal and Kareena Kapoor in the lead roles , and is an official remake of the 1998 film \" Stepmom \" . movie released worldwide on 3 September 2010 , and a day before in India and UAE . Upon release , movie received positive reviews from critics . M",
+      "reference_public_count": 13,
+      "reference_private_count": 3,
+      "predicted_count": 24,
+      "missing_public": [
+        "<subj>We Are Family<rel>country<obj>French<e>",
+        "<subj>We Are Family<rel>genre<obj>R&B<e>",
+        "<subj>We Are Family<rel>producer<obj>Nile Rodgers<e>",
+        "<subj>We Are Family<rel>publication date<obj>January 22 , 1979<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Karan Johar<rel>country<obj>Indian<e>",
+        "<subj>Maya<rel>child<obj>Anjali<e>",
+        "<subj>Maya<rel>child<obj>Ankush<e>",
+        "<subj>Siddharth Malhotra<rel>country<obj>Indian<e>",
+        "<subj>Stepmom<rel>country<obj>India<e>",
+        "<subj>The movie<rel>cast member<obj>Arjun Rampal<e>",
+        "<subj>The movie<rel>cast member<obj>Kareena Kapoor<e>",
+        "<subj>We Are Family<rel>author<obj>Siddharth Malhotra<e>",
+        "<subj>We Are Family<rel>country<obj>Indian<e>",
+        "<subj>We Are Family<rel>genre<obj>drama film<e>",
+        "<subj>We Are Family<rel>producer<obj>Karan Johar<e>",
+        "<subj>We Are Family<rel>publication date<obj>2010<e>"
+      ]
+    },
+    {
+      "dataset_index": 1921,
+      "line_number": 1922,
+      "text_excerpt": " Brussels , officially the Brussels - Capital Region , is a region of Belgium comprising 19 municipalities , including the Belgium of Brussels , which is the capital of Belgium . The Brussels - Capital the Brussels-Capital Region is located in the central portion of the Belgium and is a part of both the French Community of Belgium and the Flemish Community , but is separate from the Flemish Region",
+      "reference_public_count": 8,
+      "reference_private_count": 1,
+      "predicted_count": 10,
+      "missing_public": [
+        "<subj>Flemish Community<rel>country<obj>the country<e>",
+        "<subj>Flemish Region<rel>country<obj>the country<e>",
+        "<subj>French Community of Belgium<rel>country<obj>the country<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Flemish Community<rel>country<obj>Belgium<e>",
+        "<subj>Flemish Region<rel>country<obj>Belgium<e>",
+        "<subj>French Community of Belgium<rel>country<obj>Belgium<e>",
+        "<subj>Walloon Region<rel>country<obj>Belgium<e>"
+      ]
+    },
+    {
+      "dataset_index": 6222,
+      "line_number": 6223,
+      "text_excerpt": " \" Simpsons \" director Brad Bird as \" the unsung hero \" of the show , served as creative supervisor for the first four seasons . Brad Bird was constantly at odds with Groening , Brooks and the show 's production company Gracie Films and left in 1993 . Before leaving , Brad Bird negotiated a deal that sees Brad Bird receive a share of the profits every year , and an executive producer credit despit",
+      "reference_public_count": 4,
+      "reference_private_count": 2,
+      "predicted_count": 6,
+      "missing_public": [
+        "<subj>the show 's<rel>creator<obj>Matt Groening<e>",
+        "<subj>the show 's<rel>executive producer<obj>Selman<e>",
+        "<subj>the show<rel>executive producer<obj>Selman<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>the show 's<rel>creator<obj>Groening<e>",
+        "<subj>the show 's<rel>executive producer<obj>Brooks<e>",
+        "<subj>the show<rel>executive producer<obj>Brad Bird<e>"
+      ]
+    },
+    {
+      "dataset_index": 8742,
+      "line_number": 8743,
+      "text_excerpt": "   The 1968 Polish motion picture \" Matthew 's Days \" by Witold Leszczyński was based on the novel . The Birds The The Birds The Birds , original Nynorsk title Fuglane , is a novel by Norwegian author Tarjei Vesaas . The Birds The Birds was first released in 1957 , and has been translated into several languages , including English . The story revolves around the inner world of Matthew , who is men",
+      "reference_public_count": 12,
+      "reference_private_count": 2,
+      "predicted_count": 20,
+      "missing_public": [
+        "<subj>The Birds<rel>author<obj>Hitchcock<e>",
+        "<subj>The Birds<rel>country<obj>American<e>",
+        "<subj>The The Birds<rel>country<obj>American<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Norsk Forlag<rel>country<obj>Norway<e>",
+        "<subj>Norwegian author Tarjei Vesaas<rel>country<obj>Norwegian<e>",
+        "<subj>The Birds<rel>author<obj>Norwegian author Tarjei Vesaas<e>",
+        "<subj>The Birds<rel>author<obj>Tarjei Vesaas<e>",
+        "<subj>The Birds<rel>country<obj>Norwegian<e>",
+        "<subj>The Birds<rel>language used<obj>English<e>",
+        "<subj>The The Birds<rel>author<obj>Tarjei Vesaas<e>",
+        "<subj>The The Birds<rel>country<obj>Norwegian<e>",
+        "<subj>Vesaas<rel>country<obj>Norway<e>"
+      ]
+    },
+    {
+      "dataset_index": 9617,
+      "line_number": 9618,
+      "text_excerpt": " \" The Innocent The The Innocent The Innocent is a 1993 John Schlesinger film . The screenplay was written by Ian McEwan and based on Ian McEwan novel \" The The Innocent The Innocent \" . The film , released in the USA in 1995 , stars Anthony Hopkins , Isabella Rossellini , and Campbell Scott . The film takes place in 1950s Berlin at the height of the Cold War and centres around the joint CIA / MI6",
+      "reference_public_count": 8,
+      "reference_private_count": 2,
+      "predicted_count": 12,
+      "missing_public": [
+        "<subj>Anthony Hopkins<rel>country<obj>the USA<e>",
+        "<subj>Isabella Rossellini<rel>country<obj>the USA<e>",
+        "<subj>The film<rel>country<obj>the USA<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Anthony Hopkins<rel>country<obj>USA<e>",
+        "<subj>Isabella Rossellini<rel>country<obj>USA<e>",
+        "<subj>The film<rel>cast member<obj>Campbell Scott<e>",
+        "<subj>The film<rel>cast member<obj>Isabella Rossellini<e>",
+        "<subj>The film<rel>country<obj>USA<e>"
+      ]
+    },
+    {
+      "dataset_index": 13096,
+      "line_number": 13097,
+      "text_excerpt": " \" Branded Branded ) is a 2012 Russian – American dark fantasy science fiction film written and directed by Jamie Bradshaw and Aleksandr Dulerayn . film was released on September 7 , 2012 . In early 1980s Soviet Russia , young Misha Galkin looks up at the night sky and sees the stars shift into a cow shaped constellation which turns to look at Misha Galkin . Moments later , Misha Galkin",
+      "reference_public_count": 7,
+      "reference_private_count": 1,
+      "predicted_count": 10,
+      "missing_public": [
+        "<subj>Branded Branded<rel>genre<obj>western<e>",
+        "<subj>Branded Branded<rel>publication date<obj>1950<e>",
+        "<subj>Misha Galkin<rel>country<obj>Russian<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Branded Branded<rel>author<obj>Aleksandr Dulerayn<e>",
+        "<subj>Branded Branded<rel>genre<obj>dark fantasy<e>",
+        "<subj>Branded Branded<rel>genre<obj>science fiction film<e>",
+        "<subj>Branded Branded<rel>publication date<obj>September 7 , 2012<e>",
+        "<subj>Misha Galkin<rel>country<obj>American<e>"
+      ]
+    },
+    {
+      "dataset_index": 70,
+      "line_number": 71,
+      "text_excerpt": "   Milan served as capital of the Western Roman Empire from 286 to 402 and the Duchy of Milan during the medieval period and early modern age . Milan is considered a leading alpha global city , with strengths in the field of the art , commerce , design , education , entertainment , fashion , finance , healthcare , media , services , research and tourism . city business district hosts Italy 's stoc",
+      "reference_public_count": 15,
+      "reference_private_count": 2,
+      "predicted_count": 20,
+      "missing_public": [
+        "<subj>Milan<rel>instance of<obj>polycentric metropolitan region<e>",
+        "<subj>Milan<rel>location<obj>Lombardy<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Italy 's stock exchange<rel>country<obj>Italy<e>",
+        "<subj>Milan<rel>country<obj>Western Roman Empire<e>",
+        "<subj>Milan<rel>instance of<obj>global city<e>",
+        "<subj>Milan<rel>location<obj>Duchy of Milan<e>",
+        "<subj>city<rel>country<obj>Italy<e>"
+      ]
+    },
+    {
+      "dataset_index": 316,
+      "line_number": 317,
+      "text_excerpt": " 2007 . Economy of Hamilton , Ontario This article is about the Economy of Hamilton , Ontario . The Hamilton Chamber of Commerce is the host organization for the Hamilton Economic Summit — the Ontario ’s premier leadership initiative . The purpose of this award - winning summit is to help drive Hamilton forward as one of Canada ’s top midsize cities measured by our ability to attract talent and in",
+      "reference_public_count": 4,
+      "reference_private_count": 1,
+      "predicted_count": 10,
+      "missing_public": [
+        "<subj>Hamilton<rel>country<obj>Bermuda<e>",
+        "<subj>Hamilton<rel>location<obj>Lake Ontario<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Hamilton Chamber of Commerce<rel>country<obj>Canada ’s<e>",
+        "<subj>Hamilton Economic Summit<rel>country<obj>Canada ’s<e>",
+        "<subj>Hamilton Economic Summit<rel>location<obj>Hamilton<e>",
+        "<subj>Hamilton<rel>country<obj>Canada ’s<e>",
+        "<subj>Hamilton<rel>country<obj>Canada<e>",
+        "<subj>Hamilton<rel>location<obj>Ontario<e>",
+        "<subj>Ontario<rel>country<obj>Canada ’s<e>"
+      ]
+    },
+    {
+      "dataset_index": 1501,
+      "line_number": 1502,
+      "text_excerpt": " Renaissance and Baroque eras , Prague was the capital of the Kingdom of Bohemia and the main residence of several Holy Roman Emperors , most notably of Charles IV . Prague was an important city to the Habsburg Monarchy and Prague Austro - Hungarian Empire . The Prague played major roles in the Bohemian and Protestant Reformation , the Thirty Years ' War and in 20th - century history as the capita",
+      "reference_public_count": 9,
+      "reference_private_count": 4,
+      "predicted_count": 21,
+      "missing_public": [
+        "<subj>Prague<rel>country<obj>Czech Republic<e>",
+        "<subj>Prague<rel>location<obj>central Europe<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Charles IV<rel>country<obj>Habsburg Monarchy<e>",
+        "<subj>Holy Roman Emperors<rel>country<obj>Habsburg Monarchy<e>",
+        "<subj>Prague<rel>capital<obj>The Prague<e>",
+        "<subj>Prague<rel>country<obj>Austro - Hungarian Empire<e>",
+        "<subj>Prague<rel>country<obj>Bohemian<e>",
+        "<subj>Prague<rel>country<obj>Czechoslovakia<e>",
+        "<subj>Prague<rel>country<obj>Kingdom of Bohemia<e>",
+        "<subj>Prague<rel>location<obj>Europe<e>",
+        "<subj>Prague<rel>location<obj>Prague Austro - Hungarian Empire<e>",
+        "<subj>The Prague<rel>country<obj>Czechoslovakia<e>"
+      ]
+    },
+    {
+      "dataset_index": 1657,
+      "line_number": 1658,
+      "text_excerpt": "   Manuela Carmena , mayoral candidate for the later , was proclaimed mayor after a deal was reached between mayor party and the PSOE . Madrid is administratively divided into 21 districts , which are further subdivided into 128 wards Madrid is the capital of the Community of Madrid . The region has region own legislature and region enjoys a wide range of competencies in areas such as social spend",
+      "reference_public_count": 1,
+      "reference_private_count": 1,
+      "predicted_count": 2,
+      "missing_public": [
+        "<subj>Madrid<rel>location<obj>River Manzanares<e>"
+      ],
+      "missing_private": [
+        "<subj>Manuela Carmena<rel>member of<obj>party<e>"
+      ],
+      "extra_predicted": [
+        "<subj>Madrid<rel>location<obj>Community of Madrid<e>",
+        "<subj>Manuela Carmena<rel>member of<obj>the PSOE<e>"
+      ]
+    },
+    {
+      "dataset_index": 2470,
+      "line_number": 2471,
+      "text_excerpt": "   His primary influence was \" The Proposition \" , though \" U Turn \" influenced the initial concept when His was still brainstorming ideas . This early concept involved two brothers who entered a haunted town , but the supernatural aspect was later dropped . von Hoffmann described the film as a \" hybrid exploitation thriller that is basically a love letter , a deconstruction of genre movies in gen",
+      "reference_public_count": 4,
+      "reference_private_count": 1,
+      "predicted_count": 7,
+      "missing_public": [
+        "<subj>Drifter<rel>author<obj>Chris von Hoffmann<e>",
+        "<subj>the film<rel>author<obj>von Chris von Hoffmann<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Behaving Badly<rel>author<obj>Aria Emory<e>",
+        "<subj>Drifter<rel>author<obj>Emory<e>",
+        "<subj>Drifter<rel>author<obj>Von von Hoffmann<e>",
+        "<subj>the film<rel>author<obj>von Hoffmann<e>"
+      ]
+    },
+    {
+      "dataset_index": 2614,
+      "line_number": 2615,
+      "text_excerpt": " Who will walk away ? For two men who desperately adore the same woman and for the woman who loves men equally there is no easy way out . Obsession Obsession is a 1997 Franco - German drama film directed by Peter Sehr and starring Daniel Craig . The film was released in Germany on 28 August 1997 and premiered in Canada 's Toronto International Film Festival on 9 September the same year . Two men b",
+      "reference_public_count": 4,
+      "reference_private_count": 4,
+      "predicted_count": 8,
+      "missing_public": [
+        "<subj>Obsession<rel>publication date<obj>1976<e>"
+      ],
+      "missing_private": [
+        "<subj>Obsession<rel>cast member<obj>Cliff Robertson<e>"
+      ],
+      "extra_predicted": [
+        "<subj>Obsession<rel>cast member<obj>Daniel Craig<e>",
+        "<subj>Obsession<rel>publication date<obj>1997<e>"
+      ]
+    },
+    {
+      "dataset_index": 4176,
+      "line_number": 4177,
+      "text_excerpt": " Set in a dystopian , gray version of 1984 , British journalist Arthur Stuart is writing an article about the withdrawal from public life of 1970s glam rock star Brian Slade , and is interviewing those who had a part in the entertainer 's career . As each person recalls person thoughts , article becomes the introduction of the vignette for that particular segment in Brian Slade 's personal and pro",
+      "reference_public_count": 3,
+      "reference_private_count": 3,
+      "predicted_count": 8,
+      "missing_public": [],
+      "missing_private": [
+        "<subj>Brian Slade<rel>country<obj>Britain<e>",
+        "<subj>glam rock<rel>country<obj>Britain<e>"
+      ],
+      "extra_predicted": [
+        "<subj>Brian Slade<rel>country<obj>British<e>",
+        "<subj>Brian Slade<rel>movement<obj>glam rock<e>",
+        "<subj>British journalist Arthur Stuart<rel>country<obj>British<e>",
+        "<subj>glam rock<rel>country<obj>British<e>"
+      ]
+    },
+    {
+      "dataset_index": 5064,
+      "line_number": 5065,
+      "text_excerpt": " Michael Lazarou . The film claimed to follow the true accounts that inspired Blatty to write \" The Exorcist \" and starred Timothy Dalton , Henry Czerny , and Christopher Plummer . On January 22 , 2016 , 20th Century Fox Television announced Timothy Dalton and Henry Czerny and Christopher Plummer were developing a television series of \" The The Exorcist \" . On February 2 , 2016 , Rupert Wyatt was ",
+      "reference_public_count": 8,
+      "reference_private_count": 1,
+      "predicted_count": 13,
+      "missing_public": [
+        "<subj>Exorcist<rel>author<obj>William Peter Blatty<e>",
+        "<subj>The Exorcist<rel>author<obj>William Peter Blatty<e>"
+      ],
+      "missing_private": [],
+      "extra_predicted": [
+        "<subj>Exorcist<rel>author<obj>Blatty<e>",
+        "<subj>The Exorcist<rel>author<obj>Blatty<e>",
+        "<subj>The Exorcist<rel>cast member<obj>Christopher Plummer<e>",
+        "<subj>The Exorcist<rel>cast member<obj>Henry Czerny<e>",
+        "<subj>The film<rel>cast member<obj>Christopher Plummer<e>",
+        "<subj>The film<rel>cast member<obj>Henry Czerny<e>"
+      ]
+    }
+  ],
+  "notes": [
+    "0.80 is an engineering warning threshold, not a paper threshold.",
+    "Fixed references are o_public/o_private from original text.",
+    "Extra predicted triples can be legitimate triples excluded from the private/public partition.",
+    "Current predictions use the released unordered entity-pair first-relation duplicate rule."
+  ]
+}

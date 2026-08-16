@@ -1,0 +1,278 @@
+{
+  "schema": "eraser4rag-coreferee-shards-v1",
+  "spacy_model": "en_core_web_lg",
+  "workers_per_input": 16,
+  "records_per_shard": 250,
+  "max_records_per_input": null,
+  "per_context_timeout_seconds": 120.0,
+  "reuse_complete": true,
+  "inputs": [
+    {
+      "input": "dataset/retrieved_data/two_dataset_v1/popqa_train_retrieved.jsonl",
+      "input_sha256": "3fe17443935aefe34031404d05dfad3ec73d3d524f557284143463e9599de73e",
+      "records": 5000,
+      "shards": [],
+      "output": "dataset/retrieved_data/two_dataset_v1_timeout120_coref/popqa_train_retrieved_clean.jsonl",
+      "output_sha256": "45e70df3d847102dfaacc25eb8a454c5bb0abf6d4900dfab1535a85ca0d7f5aa",
+      "merged_records": 5000,
+      "reused_complete": true
+    },
+    {
+      "input": "dataset/retrieved_data/two_dataset_v1/popqa_eval_retrieved.jsonl",
+      "input_sha256": "d0676116f37ae7f0fad6fbcf34ee468949bc02d4243ba45c95f89c259b6c76fc",
+      "records": 1000,
+      "shards": [
+        {
+          "index": 0,
+          "start": 0,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/popqa_eval_retrieved/0000.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/popqa_eval_retrieved/0000.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/popqa_eval_retrieved/0000.log"
+        },
+        {
+          "index": 1,
+          "start": 250,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/popqa_eval_retrieved/0001.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/popqa_eval_retrieved/0001.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/popqa_eval_retrieved/0001.log"
+        },
+        {
+          "index": 2,
+          "start": 500,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/popqa_eval_retrieved/0002.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/popqa_eval_retrieved/0002.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/popqa_eval_retrieved/0002.log"
+        },
+        {
+          "index": 3,
+          "start": 750,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/popqa_eval_retrieved/0003.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/popqa_eval_retrieved/0003.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/popqa_eval_retrieved/0003.log"
+        }
+      ],
+      "output": "dataset/retrieved_data/two_dataset_v1_timeout120_coref/popqa_eval_retrieved_clean.jsonl",
+      "output_sha256": "99717bd2b6fc4328afe22c8d71b903356476e93e2f6d3d36f6e457a2fc11fd60",
+      "merged_records": 1000,
+      "reused_complete": false
+    },
+    {
+      "input": "dataset/retrieved_data/two_dataset_v1/hotpotqa_train_retrieved.jsonl",
+      "input_sha256": "ae9aef32da3e48e02eb4f4fc50db0e3cce3039a97c801038675a94bdea2358a5",
+      "records": 5000,
+      "shards": [
+        {
+          "index": 0,
+          "start": 0,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0000.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0000.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0000.log"
+        },
+        {
+          "index": 1,
+          "start": 250,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0001.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0001.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0001.log"
+        },
+        {
+          "index": 2,
+          "start": 500,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0002.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0002.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0002.log"
+        },
+        {
+          "index": 3,
+          "start": 750,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0003.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0003.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0003.log"
+        },
+        {
+          "index": 4,
+          "start": 1000,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0004.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0004.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0004.log"
+        },
+        {
+          "index": 5,
+          "start": 1250,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0005.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0005.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0005.log"
+        },
+        {
+          "index": 6,
+          "start": 1500,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0006.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0006.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0006.log"
+        },
+        {
+          "index": 7,
+          "start": 1750,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0007.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0007.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0007.log"
+        },
+        {
+          "index": 8,
+          "start": 2000,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0008.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0008.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0008.log"
+        },
+        {
+          "index": 9,
+          "start": 2250,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0009.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0009.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0009.log"
+        },
+        {
+          "index": 10,
+          "start": 2500,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0010.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0010.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0010.log"
+        },
+        {
+          "index": 11,
+          "start": 2750,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0011.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0011.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0011.log"
+        },
+        {
+          "index": 12,
+          "start": 3000,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0012.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0012.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0012.log"
+        },
+        {
+          "index": 13,
+          "start": 3250,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0013.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0013.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0013.log"
+        },
+        {
+          "index": 14,
+          "start": 3500,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0014.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0014.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0014.log"
+        },
+        {
+          "index": 15,
+          "start": 3750,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0015.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0015.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0015.log"
+        },
+        {
+          "index": 16,
+          "start": 4000,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0016.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0016.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0016.log"
+        },
+        {
+          "index": 17,
+          "start": 4250,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0017.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0017.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0017.log"
+        },
+        {
+          "index": 18,
+          "start": 4500,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0018.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0018.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0018.log"
+        },
+        {
+          "index": 19,
+          "start": 4750,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0019.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0019.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_train_retrieved/0019.log"
+        }
+      ],
+      "output": "dataset/retrieved_data/two_dataset_v1_timeout120_coref/hotpotqa_train_retrieved_clean.jsonl",
+      "output_sha256": "05e6fbbbfdc424eaba8f444740b43eba85450950f33f47e72f9e98292dbc926c",
+      "merged_records": 5000,
+      "reused_complete": false
+    },
+    {
+      "input": "dataset/retrieved_data/two_dataset_v1/hotpotqa_eval_retrieved.jsonl",
+      "input_sha256": "3d0ac803a8dcae271ce4117a2b55d1fb9510e0dfd8b06aba1a5ed21b8ed55dd0",
+      "records": 1000,
+      "shards": [
+        {
+          "index": 0,
+          "start": 0,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0000.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0000.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0000.log"
+        },
+        {
+          "index": 1,
+          "start": 250,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0001.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0001.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0001.log"
+        },
+        {
+          "index": 2,
+          "start": 500,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0002.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0002.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0002.log"
+        },
+        {
+          "index": 3,
+          "start": 750,
+          "records": 250,
+          "output": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0003.jsonl",
+          "metadata": "outputs/coref_shards/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0003.meta.json",
+          "log": "logs/coref/two_dataset_v1_timeout120/hotpotqa_eval_retrieved/0003.log"
+        }
+      ],
+      "output": "dataset/retrieved_data/two_dataset_v1_timeout120_coref/hotpotqa_eval_retrieved_clean.jsonl",
+      "output_sha256": "5bac181abe24a82d774508f035440fe9b8182398659cc9fbb21dd47e741e46a1",
+      "merged_records": 1000,
+      "reused_complete": false
+    }
+  ]
+}

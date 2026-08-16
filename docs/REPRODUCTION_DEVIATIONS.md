@@ -1,168 +1,96 @@
-# Eraser4RAG v2 Reproduction Deviations
+# Eraser4RAG v2 复现差异说明
 
-This document separates behavior observed in the public author snapshot from
-paper-v2 alignment, compatibility reconstruction, and engineering-only work.
-The source baseline is commit `2fb526451ad49735cd6d1826b8ff882e40c49a5f`.
+_本文说明公开代码、论文 v2[^1] 与本仓库两数据集复现之间的差异，供结果解释和后续复跑使用。_
 
-## Labels
+---
 
-- `[AUTHOR-CODE]`: behavior directly present in the public snapshot.
-- `[PAPER-V2]`: a setting explicitly stated by paper v2 but absent or stale in
-  the public snapshot.
-- `[RECONSTRUCTION]`: behavior rebuilt to make the public snapshot executable,
-  compatible, or internally consistent. It is not claimed as an unpublished
-  author setting.
-- `[ENGINEERING]`: paths, CLI, validation, logging, safety, and tests that do
-  not intentionally change the algorithmic objective.
+## 分类
 
-## Preserved author behavior
+本仓库以作者公开代码提交 `2fb526451ad49735cd6d1826b8ff882e40c49a5f`[^2] 为基线。以下标签不代表优劣，只说明设置来源：
 
-| Area | Classification | Treatment |
-|---|---|---|
-| Rewriter prompt and eight public/private special tokens | `[AUTHOR-CODE]` | Preserved and centralized in shared serializers. |
-| PPO fixed reference | `[AUTHOR-CODE]` | Remains the original document-local public/private triples. GPT-rewritten extractions are never used as the PPO fixed reference. |
-| PPO dynamic extraction | `[AUTHOR-CODE]` + `[RECONSTRUCTION]` | Only the current policy rewrite is dynamically passed through ReLiK. Its triples now use the same unordered entity-pair first-relation rule as the fixed-reference extraction and mandatory consistency gate; the released PPO helper itself removed only exact duplicates/self-loops. |
-| Reward | `[AUTHOR-CODE]` + `[PAPER-V2]` | Kept exactly as `r_pub * exp(-p * r_pri)`. |
-| ReLiK `use_nme=True` | `[AUTHOR-CODE]` | Default preserved, with a reliable CLI switch for diagnosis. |
-| Relation-extraction duplicate rule | `[AUTHOR-CODE]` | The first relation for an unordered subject/object pair is retained; later relations for that pair are dropped. The consistency gate applies the same rule. |
-| Graph connectivity | `[AUTHOR-CODE]` | Undirected connectivity and the author's substring short-form heuristic are retained and documented; they are not equivalent to semantic inference. |
-| RL context filter | `[AUTHOR-CODE]` | Defaults preserve `local public >= 5` and `local private >= 2`, now exposed and logged. |
+| 标签 | 含义 |
+| --- | --- |
+| `[AUTHOR-CODE]` | 作者公开快照中可以直接确认的行为 |
+| `[PAPER-V2]` | 论文 v2 明确给出，但公开代码缺失或已过时的设置 |
+| `[RECONSTRUCTION]` | 为使公开快照可运行、兼容或内部一致而补建的行为，不视为作者未公开设置 |
+| `[ENGINEERING]` | 路径、校验、日志和续跑等不改变算法目标的工程处理 |
 
-## Paper-v2 alignment
+## 作者行为与论文 v2 对齐
 
-| Change | Classification | Reason |
-|---|---|---|
-| Add HotpotQA as the fourth PPO data interface | `[PAPER-V2]` | Paper v2 states RL uses PopQA, TriviaQA, NQ, and HotpotQA. |
-| Set PPO discount `gamma=0.99` | `[PAPER-V2]` | The public code only set the LR scheduler gamma; TRL PPO gamma otherwise remained 1.0. |
-| Cap privacy penalty at 40 | `[PAPER-V2]` | The public `<= 40` increment condition reached 45 at step 1750. |
-| Boundary convention | `[RECONSTRUCTION]` | Outer steps 1–349 use 20; 350–699 use 25; 700–1049 use 30; 1050–1399 use 35; step 1400 onward uses 40. This convention is explicit in tests and logs. |
-| Formal SFT defaults | `[PAPER-V2]` | Flan-T5-large, 3 epochs, lr `5e-5`, input 1300, target 128. |
+| 项目 | 分类 | 本仓库采用的口径 |
+| --- | --- | --- |
+| 改写提示与特殊标记 | `[AUTHOR-CODE]` | 保留作者的公有/私有提示格式和 8 个特殊 token |
+| PPO 固定参照 | `[AUTHOR-CODE]` | 始终使用原始文档的局部 `public/private` 三元组；不把改写文本重新抽取的三元组当作固定参照 |
+| PPO 动态预测 | `[AUTHOR-CODE]` + `[RECONSTRUCTION]` | 仅对当前策略生成的改写文本运行 ReLiK，并与固定参照计算奖励；固定和动态三元组统一使用“无序实体对保留第一条关系”的去重规则 |
+| 奖励函数 | `[AUTHOR-CODE]` + `[PAPER-V2]` | 保持 `r_pub * exp(-p * r_pri)`，ReLiK 默认 `use_nme=True` |
+| PPO 样本过滤 | `[AUTHOR-CODE]` | 保留局部公有三元组不少于 5、局部私有三元组不少于 2 的条件 |
+| SFT 设置 | `[PAPER-V2]` | Flan-T5-large，3 epochs，学习率 `5e-5`，输入长度 1300，目标长度 128 |
+| PPO 折扣 | `[PAPER-V2]` | 使用 `gamma=0.99`；公开代码只设置了学习率调度器的 gamma |
+| 隐私惩罚 `p` | `[PAPER-V2]` + `[RECONSTRUCTION]` | step 1-349/350-699/700-1049/1050-1399 分别使用 20/25/30/35，step 1400 起封顶 40，修正公开代码可能递增到 45 的边界问题 |
 
-## Compatibility reconstruction
+## 数据口径
 
-### Environments
+论文所用的固定 Wikipedia/Contriever 检索索引未随公开仓库发布，因此本次缩减实验使用以下可追踪替代。这些差异会改变模型看到的文档和三元组分布，结果不应视为论文原表的同条件重跑。
 
-- `[RECONSTRUCTION]` The original single requirements file is archived but is
-  not treated as installable: Coreferee conflicts with ReLiK's spaCy range,
-  and the pinned Transformers/scikit-learn versions conflict with ReLiK 1.0.7.
-- `[RECONSTRUCTION]` Two Python 3.10.14 environments are defined:
-  `eraser-coref` (Coreferee/spaCy 3.5) and `eraser-main`
-  (ReLiK/Transformers 4.41.2/TRL 0.11.4).
-- `[RECONSTRUCTION]` Torch 2.3.1 is installed separately for the actual AutoDL
-  CUDA image. vLLM and Coreferee are not installed into `eraser-main`.
+| 数据集/步骤 | 本次设置 | 对结果解释的影响 |
+| --- | --- | --- |
+| PopQA 检索 | 固定 `MinaGabriel/popqa-with-retrieval-20` revision `dcc3f4f72fab2f7bca386c51e5cf329109727919`；每条记录已有 top-20 文档，本次按原顺序截断为 top-10 | 使用第三方预检索结果，不是重新运行论文检索器 |
+| HotpotQA 检索 | 固定 `hotpotqa/hotpot_qa` revision `1908d6afbbead072334abe2965f91bd2709910ab`；使用 official `distractor` contexts，少于 10 个 context 的记录先排除 | official distractor 文档替代论文检索结果，文档难度和覆盖率可能不同 |
+| 数据规模 | seed 42；PopQA 和 HotpotQA 各固定抽样 5,000 条 train、1,000 条 eval | 这是两数据集缩减实验，不是论文的 PopQA、TriviaQA、NQ、HotpotQA 四数据集全量训练 |
+| Coreferee | 每个 context 最多处理 120 秒；超时后保留原文，并在分片 provenance 中记录 record/context 身份 | 超时 context 未完成指代消解，可能影响后续 ReLiK 三元组及指标；样本不会因超时静默丢失 |
+| 隐私划分 | seed 42，按 25% 采样公有图三元组；若候选会损害 QA 连通性，则返回公有候选集，并在每次转移后重建私有图 | 属于对公开后处理缺口的确定性重建，不保证与作者未公开流水线逐字节一致 |
 
-### Data and triple handling
+## 兼容性重建
 
-- `[RECONSTRUCTION]` The missing `utilities.process_private_trps` dependency is
-  replaced by strict shared neutral/public/private serialization helpers.
-- `[RECONSTRUCTION]` The SFT dataset has no query/group identifier. Consecutive
-  rows with identical, order-sensitive global public/private graphs are grouped
-  only for PPO engineering smoke data. This reconstruction is marked
-  `source=regrouped_author_sft` and is not formal PPO data.
-- `[RECONSTRUCTION]` JSON object document IDs are normalized to strings at
-  alignment boundaries to avoid integer/string mismatches after serialization.
-- `[RECONSTRUCTION]` Deterministic graph sampling uses one seeded RNG rather
-  than resetting seed 42 inside every query.
-- `[RECONSTRUCTION]` A sampled triple rejected because it would harm QA returns
-  to the public candidate set instead of disappearing from both partitions.
-- `[RECONSTRUCTION]` When a public triple is moved into privacy, the private
-  graph is rebuilt so later connectivity checks see the expanded graph. This
-  implements the stated bidirectional filtering intent; it is not claimed as
-  byte-identical hidden author code.
-- `[RECONSTRUCTION]` An empty public reference is assigned `r_pub=1`; an empty
-  private reference is assigned `r_pri=0`. Formal author PPO defaults filter out
-  these cases, but explicit definitions prevent division-by-zero in validators
-  and smoke tests.
-- `[RECONSTRUCTION]` The special-set rewrite output now retains its source
-  `ctxs`, and inference-attack output uses the global `privacy` key. These
-  repair released producer/consumer schema mismatches without changing model
-  generation.
+- `[RECONSTRUCTION]` 使用两个 Python 3.10.14 环境：`eraser-main` 运行 SFT、ReLiK、PPO 和评估，`eraser-coref` 单独运行 Coreferee，避免二者 spaCy 版本冲突。
+- `[RECONSTRUCTION]` 缺失的私有三元组处理模块由统一的三元组解析、序列化和无序实体对去重实现替代；文档 ID 在对齐边界统一为字符串。
+- `[RECONSTRUCTION]` 被采样进私有图的三元组会即时更新连通图；因 QA 约束被拒绝的候选不会从公有和私有集合同时消失。
+- `[RECONSTRUCTION]` 空公有参照定义为 `r_pub=1`，空私有参照定义为 `r_pri=0`，避免除零。正式指标中若存在空参照，其数量必须与指标一起报告。
+- `[RECONSTRUCTION]` `max_steps` 表示精确的外层 rollout/update 次数。本次 3,000 steps 是缩减复现的算力选择，不是论文报告的停止条件。
+- `[RECONSTRUCTION]` 特殊集改写保留源 `ctxs`，推断攻击输出统一使用全局 `privacy` 字段，修复公开生产端与评估端的 schema 不一致。
+- `[ENGINEERING]` 模型 revision 固定在 `configs/reproduction.yaml`。论文和公开代码未给出原始模型快照 commit，因此这些 revision 只代表本次复现环境。
 
-### PPO execution
+## 指标解释
 
-- `[RECONSTRUCTION]` `max_steps` is defined as exact outer rollout/update
-  batches. The loop stops at that count rather than relying on TRL's derived
-  `total_ppo_epochs` and accidentally overshooting.
-- `[RECONSTRUCTION]` Formal PPO defaults to 200,000 outer updates because the
-  paper/public snapshot does not report a definitive stopping condition. This
-  value is explicit in configuration and must be reported as an experiment
-  choice, not an author hyperparameter.
-- `[RECONSTRUCTION]` Gradient accumulation is one so batch 16 / mini-batch 8
-  has an unambiguous effective meaning under TRL 0.11.4.
-- `[RECONSTRUCTION]` Formal RL input percentage defaults to 1.0. The author
-  snapshot's 0.6 default appeared to be an unreported debugging filter and can
-  still be requested explicitly.
-- `[RECONSTRUCTION]` Rewriter tokenizer and policy checkpoints are saved
-  together after registering all eight tokens. The base tokenizer directory is
-  never overwritten.
-- `[RECONSTRUCTION]` Non-dry PPO execution now requires a valid ReLiK
-  consistency report and sample manifest. A warning report requires an
-  explicit CLI acknowledgement so the measurement deviation cannot be missed.
+| 指标 | 本仓库含义 | 使用限制 |
+| --- | --- | --- |
+| `r_pub` | ReLiK 在改写文本中保留的参照公有三元组比例 | 越高表示公共知识保留越多；需结合空公有参照数量和评估子集说明 |
+| `r_pri` | ReLiK 在改写文本中仍能抽取的参照私有三元组比例 | 越低表示私有三元组残留越少，但不等同于形式化隐私保证 |
+| `r_connect` macro | 先按样本计算连通比例，再对样本平均 | 易受每条记录私有三元组数量差异影响，只作为补充统计 |
+| `r_connect` micro | 汇总所有 connected/private triples 后计算比例 | 与论文的全局比例口径对照时使用该值 |
 
-## Engineering changes
+`r_connect` 保留作者的无向图连通性和实体 substring 短名匹配规则，因此它衡量结构可连接性，不等同于语义推断。固定参照、PPO 奖励和最终评估均依赖同一 ReLiK 模型族，500 样本一致性检查可以量化实现一致性，但不能消除这种测量循环性。
 
-- `[ENGINEERING]` Added deterministic seeds, UTF-8 I/O, parent-directory
-  creation, safe JSONL extensions, partial-batch handling, explicit errors,
-  output joins with `pathlib`, and reliable boolean flags.
-- `[ENGINEERING]` Added `--max-samples`, SFT smoke/resume, PPO dry-run,
-  generate-only, reward-only, one/ten-step controls, and model/device/path
-  parameters.
-- `[ENGINEERING]` Text samples that may still contain private knowledge are not
-  logged unless explicitly requested.
-- `[ENGINEERING]` Added SFT/RL schema validators, fixed sample manifests,
-  environment/model checks, model download stages, pytest isolation, and an
-  AutoDL runbook.
-- `[ENGINEERING]` Model downloads require an explicit revision (or an explicit
-  one-time floating-head acknowledgement), resolve that revision to an
-  immutable Hub commit, and write a download manifest.
-- `[ENGINEERING]` The ReLiK value `0.80` is only an engineering warning
-  threshold. It is never described as a paper threshold or formal privacy
-  guarantee.
+held-out、`D_special` 和 inference-attack 是三个不同分母的评估集，不能把它们的数值混为同一指标。`D_special` 只保留符合特殊关系条件的记录，inference-attack 只保留可构造跨文档攻击的记录。
 
-## Completed reduced AutoDL experiment
+## 已完成的 AutoDL 实验
 
-The repository now includes one completed PopQA + HotpotQA core experiment,
-recorded in `results/two_dataset_b8_3000/`. This run is deliberately narrower
-than the paper's four-dataset setup and does not include downstream Llama-3 RAG
-QA accuracy.
+本仓库已在 48 GiB RTX 4090 上完成一次 PopQA + HotpotQA 核心复现，正式产物见 [`results/two_dataset_b8_3000/`](../results/two_dataset_b8_3000/)。
 
-- Formal SFT used the 23,074-row author PopQA input, Flan-T5-large, three
-  epochs, learning rate `5e-5`, input length 1300, and target length 128.
-- The fixed 50- and 500-sample ReLiK gates passed on AutoDL. The 500-sample
-  public/private micro recalls were `0.9536/0.9653`.
-- Reduced PPO used 5,000 PopQA plus 5,000 HotpotQA training records, batch 8,
-  mini-batch 4, four PPO epochs, `gamma=0.99`, and 3,000 outer updates. The
-  privacy penalty followed `20,25,30,35,40` and remained 40 from step 1400.
-- Training and all six final-policy ReLiK evaluations completed on an RTX 4090
-  48 GiB instance. The final weight SHA-256 is
-  `489453a9d640e4914462fa7bd2e221bff274b956fc0390e7413ee54f8920569f`.
-- The 3,000-update stopping point is this reproduction's declared compute
-  choice. It is not presented as an author-reported paper hyperparameter.
+- SFT 使用作者 PopQA 23,074 行输入，按上述论文 v2 参数完成训练。
+- 固定 50/500 样本 ReLiK 一致性门禁均通过；500 样本公有/私有 micro recall 为 `0.9536/0.9653`。
+- PPO 使用每个数据集 5,000 条训练记录，过滤并展平为 41,284 个样例；batch 8、mini-batch 4、4 PPO epochs、学习率 `1e-5`、`gamma=0.99`，完成 3,000 个 outer steps。
+- 最终 checkpoint 和六项 final-policy ReLiK 评估均完成；权重 SHA-256 为 `489453a9d640e4914462fa7bd2e221bff274b956fc0390e7413ee54f8920569f`。
 
-## Known unresolved limitations
+| 数据/子集 | `r_pub` | `r_pri` | `r_connect` |
+| --- | ---: | ---: | ---: |
+| PopQA held-out | 0.2980656501 | 0.0963874887 | - |
+| HotpotQA held-out | 0.5326244030 | 0.1286557895 | - |
+| PopQA `D_special` | 0.2081317544 | 0.1147655179 | - |
+| HotpotQA `D_special` | 0.4602122605 | 0.2146164628 | - |
+| PopQA inference-attack | - | - | 0.1244024661 macro / 0.0827820828 micro |
+| HotpotQA inference-attack | - | - | 0.3623177934 macro / 0.3783319003 micro |
 
-1. GPU model work cannot be reproduced in the local model-free preparation
-   environment. The ReLiK gates, SFT, reduced PPO, and final metrics were run
-   on AutoDL; large artifacts remain on its persistent data disk and are
-   represented publicly by settings, counts, results, and hashes.
-2. TriviaQA and NQ-Open were not included in the completed reduced experiment.
-   Downstream Llama-3 RAG QA accuracy also remains unimplemented, so this is
-   not a complete reproduction of the paper's tables.
-3. The public repository does not contain a complete, pinned Wikipedia
-   retrieval/index construction entry point. The formal four-dataset corpus
-   cannot be reconstructed from QA downloads alone.
-4. The SFT file lacks query IDs and document IDs; reconstructed groups are an
-   engineering inference from consecutive repeated graphs.
-5. Coreferee's author-style token-by-token reconstruction can alter spacing and
-   punctuation. The script records provenance but does not claim lossless text
-   reconstruction.
-6. The substring entity heuristic can over-match short strings. It is retained
-   for author compatibility and should be separately evaluated on noisy data.
-7. The same ReLiK family participates in reference construction, PPO reward,
-   and evaluation; consistency validation measures this circularity but cannot
-   remove it.
-8. Graph connectivity is a structural proxy, not a formal privacy guarantee.
-9. Model commit revisions were not stated by the paper/public snapshot. This
-   reconstruction freezes current Hub commits in
-   `configs/reproduction.yaml` as of 2026-08-12; these are engineering
-   reproducibility choices, not claims about the authors' original snapshots.
+## 未覆盖范围
+
+- 未使用 TriviaQA 和 NQ，未复现论文四数据集联合强化学习。
+- 未实现下游 Llama-3 RAG QA accuracy、QA 隐私攻击、实体删除/PPL、完整基线和消融实验。
+- 仅完成 seed 42 的一次缩减 PPO，不能据此报告跨 seed 方差或统计显著性。
+- Coreferee 的 token 级文本重建可能改变空格和标点；substring 实体匹配也可能对短实体产生误匹配。
+- 由于缺少论文固定检索索引和原始模型 snapshot，本结果证明核心流水线可运行，但不构成论文全部表格的严格复现。
+
+## 参考
+
+[^1]: “Learning to Erase Private Knowledge from Multi-Documents for Retrieval-Augmented Large Language Models.” _arXiv:2504.09910v2_ (2025). https://arxiv.org/abs/2504.09910
+
+[^2]: Eraser4RAG author repository. “Public source snapshot.” https://github.com/yjEugenia/Eraser4RAG/tree/2fb526451ad49735cd6d1826b8ff882e40c49a5f

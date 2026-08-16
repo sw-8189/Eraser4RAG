@@ -1,0 +1,18 @@
+{
+  "batch_size": 8,
+  "data_path": "outputs/evaluation/two_dataset_b8_3000/rewritten/popqa_inferattack.jsonl",
+  "device": "cuda",
+  "evaluator": "test_inferattack.py",
+  "max_samples": null,
+  "metrics": {
+    "connected_private_triples": 1752,
+    "private_triples": 21164,
+    "r_connect_macro": 0.12440246605194268,
+    "r_connect_micro": 0.08278208278208278,
+    "records": 167
+  },
+  "relik_model": "models/relik",
+  "schema": "eraser4rag-evaluation-v1",
+  "seed": 42,
+  "use_nme": true
+}

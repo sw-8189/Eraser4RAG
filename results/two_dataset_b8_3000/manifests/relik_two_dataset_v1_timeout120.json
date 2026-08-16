@@ -1,0 +1,46 @@
+{
+  "schema": "eraser4rag-relik-files-v1",
+  "model": "models/relik",
+  "device": "cuda",
+  "use_nme": true,
+  "batch_size": 8,
+  "seed": 42,
+  "inputs": [
+    {
+      "input": "dataset/retrieved_data/two_dataset_v1_timeout120_coref/popqa_train_retrieved_clean.jsonl",
+      "input_records": 5000,
+      "input_sha256": "45e70df3d847102dfaacc25eb8a454c5bb0abf6d4900dfab1535a85ca0d7f5aa",
+      "output": "dataset/retrieved_data/two_dataset_v1_timeout120_relik/popqa_train_with_triplets.jsonl",
+      "output_records": 5000,
+      "output_sha256": "9863c6ec174970a4d3a3e88b7a0b3122b10e5a72cb65f203985468ba904cdf4e",
+      "log": "logs/relik/two_dataset_v1_timeout120/popqa_train_retrieved_clean.log"
+    },
+    {
+      "input": "dataset/retrieved_data/two_dataset_v1_timeout120_coref/popqa_eval_retrieved_clean.jsonl",
+      "input_records": 1000,
+      "input_sha256": "99717bd2b6fc4328afe22c8d71b903356476e93e2f6d3d36f6e457a2fc11fd60",
+      "output": "dataset/retrieved_data/two_dataset_v1_timeout120_relik/popqa_eval_with_triplets.jsonl",
+      "output_records": 1000,
+      "output_sha256": "fc5c0c678f5c0658c49cd5e5f79ad948071bdb3811335e3145e70fc1049d7bdf",
+      "log": "logs/relik/two_dataset_v1_timeout120/popqa_eval_retrieved_clean.log"
+    },
+    {
+      "input": "dataset/retrieved_data/two_dataset_v1_timeout120_coref/hotpotqa_train_retrieved_clean.jsonl",
+      "input_records": 5000,
+      "input_sha256": "05e6fbbbfdc424eaba8f444740b43eba85450950f33f47e72f9e98292dbc926c",
+      "output": "dataset/retrieved_data/two_dataset_v1_timeout120_relik/hotpotqa_train_with_triplets.jsonl",
+      "output_records": 5000,
+      "output_sha256": "2f33aa43d9b64948ea2e98dc478c129bab9fc5814a3d35306858a1d5218a8044",
+      "log": "logs/relik/two_dataset_v1_timeout120/hotpotqa_train_retrieved_clean.log"
+    },
+    {
+      "input": "dataset/retrieved_data/two_dataset_v1_timeout120_coref/hotpotqa_eval_retrieved_clean.jsonl",
+      "input_records": 1000,
+      "input_sha256": "5bac181abe24a82d774508f035440fe9b8182398659cc9fbb21dd47e741e46a1",
+      "output": "dataset/retrieved_data/two_dataset_v1_timeout120_relik/hotpotqa_eval_with_triplets.jsonl",
+      "output_records": 1000,
+      "output_sha256": "6d520632404d86a57402adde131d991e27f4609834bf553f50b0e3b40a45454b",
+      "log": "logs/relik/two_dataset_v1_timeout120/hotpotqa_eval_retrieved_clean.log"
+    }
+  ]
+}

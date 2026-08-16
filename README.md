@@ -2,17 +2,16 @@
 
 本仓库整理了 Eraser4RAG（*Learning to Erase Private Knowledge from Multi-Documents for Retrieval-Augmented Large Language Models*）的可运行代码、固定依赖、AutoDL 运行流程，以及一次已经完成的 PopQA + HotpotQA 两数据集核心复现实验结果。
 
-> **范围声明**：本仓库的正式结果是论文方法的两数据集缩减复现。论文描述的四个 PPO 数据集为 PopQA、TriviaQA、NQ-Open 和 HotpotQA；本次为了控制算力和时间只使用 PopQA、HotpotQA。因此不能把本仓库的数值直接称为论文四数据集表格的完整复现。论文下游 Llama-3 RAG QA 评估入口在公开代码中也不完整，本仓库没有虚构该部分结果。
+> **复现范围**：正式结果覆盖 PopQA 和 HotpotQA 两数据集的 SFT、PPO 与 ReLiK 指标评估；论文四数据集实验和下游 RAG QA 指标不在本次结果内。
 
 ## 当前交付内容
 
 - 可运行的 SFT、PPO、ReLiK 抽取、隐私采样、数据校验和指标评估代码。
 - 两个相互隔离的 Python 3.10.14 环境依赖清单，以及版本和模型 revision 配置。
-- AutoDL 从数据恢复到评估的命令行 runbook。
-- `results/two_dataset_b8_3000/` 中脱敏后的正式指标、样本分母和 checkpoint/config 哈希。
+- [`docs/AUTODL_RUNBOOK.md`](docs/AUTODL_RUNBOOK.md)：中文 AutoDL 环境、运行、监控和验收手册。
+- [`docs/REPRODUCTION_DEVIATIONS.md`](docs/REPRODUCTION_DEVIATIONS.md)：中文说明论文、作者代码与本次实验之间的数据和实现差异。
+- `results/two_dataset_b8_3000/` 中从 AutoDL 导出的正式指标、运行 manifest、训练曲线、ReLiK 三元组和最终改写压缩文件。
 - `tests/` 中的单元和契约测试源码。测试源码是可复现性的一部分，pytest 缓存、测试输出和 smoke 产物不提交。
-
-过程性计划、机器状态记录、日志、模型权重、checkpoint、完整 JSONL、检索索引和本机环境 lock 均由 `.gitignore` 排除，保留在 `plan/` 或 AutoDL 持久盘中，不作为 GitHub 交付物。
 
 ## 目录说明
 
@@ -24,10 +23,10 @@ requirements/             原作者依赖及两个可安装环境清单
 scripts/                  下载、恢复、预处理、校验和正式 launcher
 tests/                    不依赖大模型的回归/契约测试
 utils/                    三元组、奖励和后处理工具
-results/                  小型、脱敏、可提交的实验结果摘要
+results/                  脱敏结果、运行记录和重要中间产物
 ```
 
-`outputs/`、`logs/`、`models/`、`output_checkpoint/`、生成的 JSONL 和 `plan/` 不应上传。`dataset/constructed_dataset/popqa_10_25_filtered_new.rar` 是 7.36 MiB 的正式 SFT 输入归档，保留它是为了让新环境能够恢复输入；解压后的 108 MiB JSONL 被忽略。
+`dataset/constructed_dataset/popqa_10_25_filtered_new.rar` 是 7.36 MiB 的正式 SFT 输入归档，可恢复解压后的 SFT JSONL。模型权重、checkpoint、缓存、日志、过程记录和可重建的大型 JSONL 由 `.gitignore` 排除。
 
 ## 环境
 
@@ -45,8 +44,10 @@ results/                  小型、脱敏、可提交的实验结果摘要
 ```bash
 git clone https://github.com/sw-8189/Eraser4RAG.git
 cd Eraser4RAG
-git checkout reproduce-v2
+git checkout main
 ```
+
+`main` 是当前交付分支；`reproduce-v2` 保留同一份两数据集复现提交。
 
 在 AutoDL 上建议把 Conda 环境、HF cache、临时目录和模型放到 `/root/autodl-tmp`，不要占满系统盘。安装完成后先执行：
 
@@ -103,8 +104,6 @@ bash scripts/run_two_dataset_timeout120.sh
 
 该 launcher 依次运行 Coreferee 分片清洗、ReLiK CUDA 抽取、25% 隐私采样、全局/局部三元组映射和严格 RL JSONL 校验；它不会启动 PPO。正式数据的来源、样本数、超时处理和与论文的差异记录在 `docs/REPRODUCTION_DEVIATIONS.md`。
 
-完整论文四数据集流程还需要固定的 Wikipedia/Contriever corpus 和 index。公开作者快照没有提供完整、可固定 revision 的构建入口，不能用任意 QA context 冒充四数据集正式语料。
-
 ## SFT
 
 先完成 ReLiK 50/500 样本一致性门禁和 SFT smoke，再运行正式 SFT。正式默认值为 Flan-T5-large、3 epochs、learning rate `5e-5`、输入长度 1300、目标长度 128：
@@ -120,7 +119,7 @@ screen -ls
 tail -f logs/sft-full/train.log
 ```
 
-SFT checkpoint 应保存在 `output_checkpoint/SFT`。正式运行会写入被忽略的 manifest 和 checkpoint；提交时只保留运行说明和结果摘要，不提交权重。
+SFT checkpoint 保存在 `output_checkpoint/SFT`，训练 manifest 的脱敏副本已收入正式结果目录。
 
 ## 两数据集 PPO
 
@@ -132,7 +131,7 @@ screen -ls
 tail -f logs/ppo/two_dataset_b8_3000/run.log
 ```
 
-launcher 会在非 dry-run 前强制检查 500 样本 ReLiK consistency report。48 GiB RTX 4090 上本次使用 batch 8；batch 16 曾发生 OOM。正式四数据集实验不要把本次两数据集 checkpoint 当作论文默认结果。
+launcher 会在训练前检查 500 样本 ReLiK consistency report。48 GiB RTX 4090 上 batch 8 已完成，batch 16 会 OOM。`screen` 中的任务不受 SSH 或 VS Code 断开影响，但云实例关机会终止进程。
 
 ## 训练后评估
 
@@ -143,6 +142,13 @@ bash scripts/build_two_dataset_eval_sets.sh
 screen -dmS eraser-eval-two bash scripts/run_two_dataset_eval.sh
 screen -ls
 tail -f logs/evaluation/two_dataset_b8_3000/*
+```
+
+已完成实验在云端使用的 PPO 路径是 `output_checkpoint/RL-two-dataset-b8-3000/step_final`。若直接复用该 checkpoint 重新评估，应显式指定：
+
+```bash
+FINAL_CHECKPOINT=/root/autodl-tmp/Eraser4RAG/output_checkpoint/RL-two-dataset-b8-3000/step_final \
+  screen -dmS eraser-eval-two bash scripts/run_two_dataset_eval.sh
 ```
 
 其中 `test_special.py` 是 retention 指标入口，`test_inferattack.py` 是 connectivity 指标入口；二者支持 `--output-json`，输出的机器可读结果默认写到被忽略的 `outputs/evaluation/.../metrics/`。
@@ -160,9 +166,9 @@ tail -f logs/evaluation/two_dataset_b8_3000/*
 | PopQA inference attack | - | - | 0.1244024661 macro / 0.0827820828 micro |
 | HotpotQA inference attack | - | - | 0.3623177934 macro / 0.3783319003 micro |
 
-最终 PPO 权重不在 GitHub；其 SHA-256 为 `489453a9d640e4914462fa7bd2e221bff274b956fc0390e7413ee54f8920569f`。这个哈希用于核对 AutoDL 上的本地 checkpoint 与结果摘要是否一致。
+最终 PPO `step_final/model.safetensors` 的 SHA-256 为 `489453a9d640e4914462fa7bd2e221bff274b956fc0390e7413ee54f8920569f`。权重不进入 Git，四个 ReLiK 三元组、六个最终改写、六个原始指标 JSON、运行 manifest 和 3,000 步训练曲线已收入结果目录。
 
-## 测试和提交边界
+## 验证
 
 建议在无卡模式执行：
 
@@ -170,20 +176,16 @@ tail -f logs/evaluation/two_dataset_b8_3000/*
 python -m pytest -q
 python -m compileall -q RL_train.py data_structure.py finetune_rewrite_doc.py \
   rewrite_docs_special.py rewrite_docs_inferattack_inference.py scripts utils tests
+python scripts/verify_result_artifacts.py \
+  --artifact-dir results/two_dataset_b8_3000/artifacts/relik \
+  --manifest results/two_dataset_b8_3000/manifests/relik_two_dataset_v1_timeout120.json
+python scripts/verify_result_artifacts.py \
+  --artifact-dir results/two_dataset_b8_3000/artifacts/rewritten \
+  --manifest results/two_dataset_b8_3000/manifests/rewritten_outputs.json
 git diff --check
 ```
 
-应提交：源码、`requirements/`、`configs/`、正式 launcher、`tests/`、docs、中文 README、`results/` 和可恢复的 RAR 输入。不要提交：pytest/cache、smoke 输出、过程 Markdown、机器专属 lock、日志、密码/token、模型/索引/checkpoint、大型生成数据。`.gitignore` 已覆盖这些目录；提交前可用 `git status --ignored` 复核。
-
-## 复现偏差和限制
-
-请先阅读 [`docs/REPRODUCTION_DEVIATIONS.md`](docs/REPRODUCTION_DEVIATIONS.md)。其中区分作者原始行为、论文 v2 对齐、兼容性重建和纯工程改动，并明确说明：
-
-1. 本次正式结果只覆盖 PopQA + HotpotQA。
-2. 检索输入和 Coreferee 超时处理是有 provenance 的工程重建，不等价于作者隐藏数据。
-3. PPO 的 3,000 steps 是本次核心复现实验选择，不是论文报告的停止步数。
-4. `r_pub/r_pri/r_connect` 是 ReLiK 图和连接性评估，不是隐私安全保证。
-5. 下游 Llama-3 QA 评估仍需补齐固定 Wikipedia/index 和公开可审计的 evaluator 后才能声称完整论文表格复现。
+模型、checkpoint、缓存、完整日志和过程记录不进入 Git。算法与数据处理差异见 [`docs/REPRODUCTION_DEVIATIONS.md`](docs/REPRODUCTION_DEVIATIONS.md)。
 
 ## 参考
 

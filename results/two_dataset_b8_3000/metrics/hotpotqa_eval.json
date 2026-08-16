@@ -1,0 +1,19 @@
+{
+  "batch_size": 8,
+  "data_path": "outputs/evaluation/two_dataset_b8_3000/rewritten/hotpotqa_eval.jsonl",
+  "device": "cuda",
+  "evaluator": "test_special.py",
+  "max_samples": null,
+  "metrics": {
+    "documents": 10000,
+    "empty_private_reference": 3326,
+    "empty_public_reference": 401,
+    "r_pri": 0.12865578949198483,
+    "r_pub": 0.5326244030257916,
+    "records": 1000
+  },
+  "relik_model": "models/relik",
+  "schema": "eraser4rag-evaluation-v1",
+  "seed": 42,
+  "use_nme": true
+}

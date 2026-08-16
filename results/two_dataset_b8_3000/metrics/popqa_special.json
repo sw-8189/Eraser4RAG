@@ -1,0 +1,17 @@
+{
+  "batch_size": 8,
+  "data_path": "outputs/evaluation/two_dataset_b8_3000/rewritten/popqa_special.jsonl",
+  "device": "cuda",
+  "evaluator": "test_special.py",
+  "max_samples": null,
+  "metrics": {
+    "documents": 6105,
+    "r_pri": 0.11476551793319908,
+    "r_pub": 0.20813175442568593,
+    "records": 954
+  },
+  "relik_model": "models/relik",
+  "schema": "eraser4rag-evaluation-v1",
+  "seed": 42,
+  "use_nme": true
+}

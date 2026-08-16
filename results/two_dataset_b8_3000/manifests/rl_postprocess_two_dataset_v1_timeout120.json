@@ -1,0 +1,61 @@
+{
+  "schema": "eraser4rag-rl-postprocess-v1",
+  "top_k": 10,
+  "privacy_rate": 0.25,
+  "seed": 42,
+  "spacy_model": "en_core_web_sm",
+  "datasets": [
+    {
+      "dataset": "popqa_train",
+      "input": "dataset/retrieved_data/two_dataset_v1_timeout120_relik/popqa_train_with_triplets.jsonl",
+      "input_records": 5000,
+      "input_sha256": "9863c6ec174970a4d3a3e88b7a0b3122b10e5a72cb65f203985468ba904cdf4e",
+      "sampled": "dataset/sample_privacy/two_dataset_v1_timeout120/sampled/popqa_train_sampled.jsonl",
+      "sampled_records": 5000,
+      "sampled_sha256": "53fb25ac6edb8e1b00fca65e8a01648581f2fc9b5a198fbeaf66bcd50c000bb8",
+      "final": "dataset/sample_privacy/two_dataset_v1_timeout120/rl/popqa_train_rl.jsonl",
+      "final_records": 5000,
+      "final_sha256": "1a65d69547947e493801b920e722a1dc895a8de60a8465c39648ddc84de414bc",
+      "validation_report": "outputs/validation/two_dataset_v1_timeout120/popqa_train_rl_rl_dataset_report.json"
+    },
+    {
+      "dataset": "popqa_eval",
+      "input": "dataset/retrieved_data/two_dataset_v1_timeout120_relik/popqa_eval_with_triplets.jsonl",
+      "input_records": 1000,
+      "input_sha256": "fc5c0c678f5c0658c49cd5e5f79ad948071bdb3811335e3145e70fc1049d7bdf",
+      "sampled": "dataset/sample_privacy/two_dataset_v1_timeout120/sampled/popqa_eval_sampled.jsonl",
+      "sampled_records": 1000,
+      "sampled_sha256": "db4f9639ee293fdd3539dabc199e926d0f6cf9776378ffdc51966c3e6fbd58fa",
+      "final": "dataset/sample_privacy/two_dataset_v1_timeout120/rl/popqa_eval_rl.jsonl",
+      "final_records": 1000,
+      "final_sha256": "a474ba4f916057b59640f66bc19d2f1f3a339cc1265f4f57629852261860e535",
+      "validation_report": "outputs/validation/two_dataset_v1_timeout120/popqa_eval_rl_rl_dataset_report.json"
+    },
+    {
+      "dataset": "hotpotqa_train",
+      "input": "dataset/retrieved_data/two_dataset_v1_timeout120_relik/hotpotqa_train_with_triplets.jsonl",
+      "input_records": 5000,
+      "input_sha256": "2f33aa43d9b64948ea2e98dc478c129bab9fc5814a3d35306858a1d5218a8044",
+      "sampled": "dataset/sample_privacy/two_dataset_v1_timeout120/sampled/hotpotqa_train_sampled.jsonl",
+      "sampled_records": 5000,
+      "sampled_sha256": "a0b3de9fc10f8341a1edc47761d79dc7157b67461c24de9d88c8a75aa18df312",
+      "final": "dataset/sample_privacy/two_dataset_v1_timeout120/rl/hotpotqa_train_rl.jsonl",
+      "final_records": 5000,
+      "final_sha256": "f6291765f815d63f03cef994eea2c86bd56f97e09f0ab1f56196ddaab7ef2aad",
+      "validation_report": "outputs/validation/two_dataset_v1_timeout120/hotpotqa_train_rl_rl_dataset_report.json"
+    },
+    {
+      "dataset": "hotpotqa_eval",
+      "input": "dataset/retrieved_data/two_dataset_v1_timeout120_relik/hotpotqa_eval_with_triplets.jsonl",
+      "input_records": 1000,
+      "input_sha256": "6d520632404d86a57402adde131d991e27f4609834bf553f50b0e3b40a45454b",
+      "sampled": "dataset/sample_privacy/two_dataset_v1_timeout120/sampled/hotpotqa_eval_sampled.jsonl",
+      "sampled_records": 1000,
+      "sampled_sha256": "0fd76b97a0b3ed8ec2187e056c6a60b1e74bbe68f2e71866074ce80164d371d8",
+      "final": "dataset/sample_privacy/two_dataset_v1_timeout120/rl/hotpotqa_eval_rl.jsonl",
+      "final_records": 1000,
+      "final_sha256": "293e4553134901947b2f59249323667aab211d2b1e0d007604ad27576f0cdc28",
+      "validation_report": "outputs/validation/two_dataset_v1_timeout120/hotpotqa_eval_rl_rl_dataset_report.json"
+    }
+  ]
+}
