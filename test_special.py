@@ -197,6 +197,25 @@ def main(args: argparse.Namespace) -> dict[str, float | int]:
     result["r_pub"] = sum_public_ratio / denominator if denominator else 0.0
     result["r_pri"] = sum_private_ratio / denominator if denominator else 0.0
     logger.info("D_special evaluation: %s", result)
+    if args.output_json:
+        output_path = Path(args.output_json)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "schema": "eraser4rag-evaluation-v1",
+            "evaluator": "test_special.py",
+            "data_path": str(Path(args.data_path).resolve()),
+            "relik_model": args.relik_model,
+            "device": args.device,
+            "use_nme": args.use_nme,
+            "batch_size": args.batch_size,
+            "seed": args.seed,
+            "max_samples": args.max_samples,
+            "metrics": result,
+        }
+        with output_path.open("w", encoding="utf-8") as fout:
+            json.dump(payload, fout, ensure_ascii=False, indent=2, sort_keys=True)
+            fout.write("\n")
+        logger.info("Saved evaluation JSON to %s", output_path)
     return result
 
 
@@ -221,6 +240,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max_samples", type=int, default=None)
+    parser.add_argument(
+        "--output_json",
+        "--output-json",
+        dest="output_json",
+        default=None,
+        help="Optional machine-readable metrics output path",
+    )
     return parser
 
 

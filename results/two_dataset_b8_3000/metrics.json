@@ -1,0 +1,109 @@
+{
+  "schema": "eraser4rag-result-v1",
+  "run_name": "two_dataset_b8_3000",
+  "status": "completed",
+  "completed_at": "2026-08-16T08:53:12+08:00",
+  "scope": "two-dataset core reproduction; not the complete four-dataset paper table",
+  "artifact_hash_manifest": "artifact_hashes.sha256",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "vram_gib_approx": 48,
+    "torch": "2.3.1",
+    "cuda": "12.1"
+  },
+  "data": {
+    "datasets": ["PopQA", "HotpotQA"],
+    "ppo_train_records_per_dataset": 5000,
+    "ppo_train_records_total": 10000,
+    "ppo_flattened_examples": 41284,
+    "held_out_records_per_dataset": 1000,
+    "privacy_sampling_rate": 0.25,
+    "seed": 42
+  },
+  "sft": {
+    "source": "author PopQA SFT input",
+    "records_total": 23074,
+    "records_train": 19612,
+    "records_eval": 3462,
+    "epochs": 3,
+    "learning_rate": 0.00005,
+    "max_concat_length": 1300,
+    "max_passage_length": 128,
+    "checkpoint_sha256": "50401656cdf284a404f48f806cdca79e4d73ca2c795d6ac5ae7a9984dce70e9d"
+  },
+  "ppo": {
+    "batch_size": 8,
+    "mini_batch_size": 4,
+    "ppo_epochs": 4,
+    "learning_rate": 0.00001,
+    "gamma": 0.99,
+    "max_steps": 3000,
+    "privacy_penalty": {
+      "initial": 20,
+      "increment": 5,
+      "interval": 350,
+      "maximum": 40
+    },
+    "final_checkpoint_sha256": "489453a9d640e4914462fa7bd2e221bff274b956fc0390e7413ee54f8920569f",
+    "final_config_sha256": "38a78d5bd5c0ec51dbc30eca32309cc68c16499923bcb26804d4493aad5d5179"
+  },
+  "metrics": {
+    "popqa_eval": {
+      "records": 1000,
+      "documents": 10000,
+      "r_pub": 0.29806565005200136,
+      "r_pri": 0.09638748874375185,
+      "empty_public_reference": 330,
+      "empty_private_reference": 2026
+    },
+    "hotpotqa_eval": {
+      "records": 1000,
+      "documents": 10000,
+      "r_pub": 0.5326244030257916,
+      "r_pri": 0.12865578949198483,
+      "empty_public_reference": 401,
+      "empty_private_reference": 3326
+    },
+    "popqa_special": {
+      "records": 954,
+      "documents": 6105,
+      "r_pub": 0.20813175442568593,
+      "r_pri": 0.11476551793319908
+    },
+    "hotpotqa_special": {
+      "records": 862,
+      "documents": 4483,
+      "r_pub": 0.46021226048254943,
+      "r_pri": 0.2146164628114836
+    },
+    "popqa_inferattack": {
+      "records": 167,
+      "private_triples": 21164,
+      "connected_private_triples": 1752,
+      "r_connect_macro": 0.12440246605194268,
+      "r_connect_micro": 0.08278208278208278
+    },
+    "hotpotqa_inferattack": {
+      "records": 45,
+      "private_triples": 1163,
+      "connected_private_triples": 440,
+      "r_connect_macro": 0.36231779337645764,
+      "r_connect_micro": 0.37833190025795355
+    }
+  },
+  "evaluation": {
+    "relik_use_nme": true,
+    "batch_size": 8,
+    "device": "cuda",
+    "seed": 42,
+    "evaluator_versions": {
+      "retention": "test_special.py",
+      "connectivity": "test_inferattack.py"
+    }
+  },
+  "limitations": [
+    "Only PopQA and HotpotQA were used for the reduced core experiment.",
+    "The public snapshot has no complete pinned Wikipedia/Contriever index builder.",
+    "Downstream Llama-3 RAG QA accuracy was not claimed or included."
+  ]
+}

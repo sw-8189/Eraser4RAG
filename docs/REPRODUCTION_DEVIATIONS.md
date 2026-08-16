@@ -119,13 +119,35 @@ The source baseline is commit `2fb526451ad49735cd6d1826b8ff882e40c49a5f`.
   threshold. It is never described as a paper threshold or formal privacy
   guarantee.
 
+## Completed reduced AutoDL experiment
+
+The repository now includes one completed PopQA + HotpotQA core experiment,
+recorded in `results/two_dataset_b8_3000/`. This run is deliberately narrower
+than the paper's four-dataset setup and does not include downstream Llama-3 RAG
+QA accuracy.
+
+- Formal SFT used the 23,074-row author PopQA input, Flan-T5-large, three
+  epochs, learning rate `5e-5`, input length 1300, and target length 128.
+- The fixed 50- and 500-sample ReLiK gates passed on AutoDL. The 500-sample
+  public/private micro recalls were `0.9536/0.9653`.
+- Reduced PPO used 5,000 PopQA plus 5,000 HotpotQA training records, batch 8,
+  mini-batch 4, four PPO epochs, `gamma=0.99`, and 3,000 outer updates. The
+  privacy penalty followed `20,25,30,35,40` and remained 40 from step 1400.
+- Training and all six final-policy ReLiK evaluations completed on an RTX 4090
+  48 GiB instance. The final weight SHA-256 is
+  `489453a9d640e4914462fa7bd2e221bff274b956fc0390e7413ee54f8920569f`.
+- The 3,000-update stopping point is this reproduction's declared compute
+  choice. It is not presented as an author-reported paper hyperparameter.
+
 ## Known unresolved limitations
 
-1. The ReLiK 50/500-sample consistency runs require the pinned AutoDL
-   `eraser-main` environment and model artifacts; they have not been run in the
-   local preparation environment.
-2. Full SFT, PPO, Llama-3 RAG accuracy, and paper metric values have not been
-   run locally. The current stage deliberately stops before GPU training.
+1. GPU model work cannot be reproduced in the local model-free preparation
+   environment. The ReLiK gates, SFT, reduced PPO, and final metrics were run
+   on AutoDL; large artifacts remain on its persistent data disk and are
+   represented publicly by settings, counts, results, and hashes.
+2. TriviaQA and NQ-Open were not included in the completed reduced experiment.
+   Downstream Llama-3 RAG QA accuracy also remains unimplemented, so this is
+   not a complete reproduction of the paper's tables.
 3. The public repository does not contain a complete, pinned Wikipedia
    retrieval/index construction entry point. The formal four-dataset corpus
    cannot be reconstructed from QA downloads alone.

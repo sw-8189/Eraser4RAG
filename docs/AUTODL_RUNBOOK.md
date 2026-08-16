@@ -13,8 +13,10 @@ git checkout reproduce-v2
 git rev-parse HEAD
 ```
 
-The local preparation agent does not push automatically. Confirm that the
-branch containing the P0–P7 changes has been pushed before using these commands.
+The `reproduce-v2` branch contains the prepared workflow and the public result
+summary. Confirm that the checked-out commit includes
+`scripts/run_two_dataset_ppo.sh` and `results/two_dataset_b8_3000/` before
+starting a new run.
 
 ## 2. Put environments and caches on the data disk
 
@@ -385,6 +387,47 @@ the preceding complete command when creating shell scripts or job manifests.
 
 ## 10. Build the formal four-dataset PPO data
 
+### Verified reduced PopQA + HotpotQA source path
+
+The completed core experiment used two explicitly pinned public sources:
+
+```text
+MinaGabriel/popqa-with-retrieval-20@dcc3f4f72fab2f7bca386c51e5cf329109727919
+hotpotqa/hotpot_qa@1908d6afbbead072334abe2965f91bd2709910ab
+```
+
+Download each split to ignored Parquet files, then build and validate the
+deterministic 5,000-train / 1,000-eval, top-10 inputs:
+
+```bash
+python scripts/download_reduced_qa_sources.py \
+  --output-dir dataset/source_data/two_dataset_v1 \
+  --cache-dir "$HF_HOME/datasets" \
+  --manifest outputs/manifests/two_dataset_sources.json
+
+python scripts/prepare_reduced_retrieval_data.py \
+  --popqa-input dataset/source_data/two_dataset_v1/popqa_train.parquet \
+  --hotpot-train-input dataset/source_data/two_dataset_v1/hotpotqa_train.parquet \
+  --hotpot-eval-input dataset/source_data/two_dataset_v1/hotpotqa_validation.parquet \
+  --output-root dataset/retrieved_data/two_dataset_v1 \
+  --manifest outputs/manifests/two_dataset_retrieval_manifest.json \
+  --train-size 5000 --eval-size 1000 --top-k 10 --seed 42
+
+python scripts/validate_retrieved_data.py \
+  --data dataset/retrieved_data/two_dataset_v1/*.jsonl \
+  --expected-contexts 10 \
+  --output outputs/validation/two_dataset_retrieval.json
+
+screen -dmS eraser-two-data bash scripts/run_two_dataset_timeout120.sh
+```
+
+The PopQA source contains third-party pre-retrieved top-20 passages, which are
+truncated to top 10. HotpotQA uses official distractor contexts, and records
+with fewer than ten contexts are excluded before deterministic selection.
+These are declared retrieval deviations, not reconstructed paper retrieval.
+
+### Full paper four-dataset path
+
 Download Contriever only when the pinned corpus/index preparation begins:
 
 ```bash
@@ -479,6 +522,25 @@ must never show 45.
 any non-dry model run. A `WARNING` report stops execution unless the mismatch
 has been reviewed, documented, and `--allow-relik-gate-warning` is supplied.
 
+### Verified two-dataset core run
+
+The completed reduced experiment used PopQA and HotpotQA only, with 5,000
+training records from each dataset. Its exact defaults are captured by a
+parameterized launcher:
+
+```bash
+export MAIN_PYTHON=/root/autodl-tmp/conda/envs/eraser-main/bin/python
+screen -dmS eraser-ppo-two bash scripts/run_two_dataset_ppo.sh
+screen -ls
+tail -f logs/ppo/two_dataset_b8_3000/run.log
+```
+
+This launcher uses batch 8, mini-batch 4, four PPO epochs, `gamma=0.99`, and
+3,000 exact outer updates. It saves every 500 updates and requires the reviewed
+500-sample ReLiK consistency gate. Batch 16 OOMed on the tested 48 GiB RTX 4090;
+batch 8 completed. The 3,000-update value is an experiment choice and does not
+replace the generic four-dataset reconstruction default above.
+
 ## 12. Core evaluation and Llama 3
 
 First produce rewritten documents, then compute `r_pri`, `r_pub`, and
@@ -491,6 +553,22 @@ python test_special.py --help
 python rewrite_docs_inferattack_inference.py --help
 python test_inferattack.py --help
 ```
+
+For the verified PopQA + HotpotQA experiment, after constructing its held-out,
+`D_special`, and inference-attack inputs, run the complete final-policy rewrite
+and six-metric pass with:
+
+```bash
+export MAIN_PYTHON=/root/autodl-tmp/conda/envs/eraser-main/bin/python
+bash scripts/build_two_dataset_eval_sets.sh
+screen -dmS eraser-eval-two bash scripts/run_two_dataset_eval.sh
+screen -ls
+tail -f logs/evaluation/two_dataset_b8_3000/*
+```
+
+Machine-readable metrics are written under ignored `outputs/evaluation/`.
+The sanitized values, sample denominators, settings, and checkpoint hashes from
+the completed run are committed under `results/two_dataset_b8_3000/`.
 
 Only after privacy/utility evaluation is stable should Llama 3 be downloaded:
 
@@ -513,9 +591,9 @@ package locks, seeds, wall time, and checkpoint hashes with each experiment.
 
 ## 14. Readiness boundary
 
-Passing the commands above proves that the prepared code can begin staged
-AutoDL validation. It does not by itself prove full paper reproduction. The
-formal four-dataset RL JSONL files, a pinned Wikipedia corpus and Contriever
-index, the 500-sample ReLiK gate, trained checkpoints, and the downstream
-Llama-3 QA evaluator must all exist and pass their respective checks before
-claiming paper-table results.
+The reduced PopQA + HotpotQA workflow, formal SFT, 3,000-step PPO run, and six
+ReLiK metrics have completed once on AutoDL. That result demonstrates the
+two-dataset core pipeline, not full paper reproduction. Formal TriviaQA and
+NQ-Open data, a pinned Wikipedia corpus and Contriever index, and the
+downstream Llama-3 QA evaluator must still exist and pass their checks before
+claiming reproduction of the paper's complete tables.

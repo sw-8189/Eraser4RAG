@@ -19,6 +19,12 @@ import time
 from pathlib import Path
 from typing import Any, Sequence
 
+try:
+    from torch.utils.data import Dataset as TorchDataset
+except ImportError:  # pragma: no cover - the pinned PPO environment includes torch
+    class TorchDataset:  # type: ignore[no-redef]
+        pass
+
 from utils.config_utils import (
     config_get,
     load_yaml_config,
@@ -181,8 +187,8 @@ def load_flattened_examples(
     return examples, stats
 
 
-class Stage2RLDataset:
-    """Minimal Dataset protocol implementation for the legacy TRL dataloader."""
+class Stage2RLDataset(TorchDataset):
+    """Tokenized RL examples accepted by both legacy and current TRL."""
 
     def __init__(self, examples: list[dict[str, Any]], tokenizer, max_length: int):
         self.examples: list[dict[str, Any]] = []
@@ -718,6 +724,13 @@ def run(args: argparse.Namespace) -> int:
         relik = Relik.from_pretrained(
             args.relik_model, device=relik_device, use_nme=args.use_nme
         )
+        # ReLiK reconfigures global logging while loading. Restore the PPO
+        # logger so per-step reward and retention metrics remain auditable.
+        logging.disable(logging.NOTSET)
+        logging.getLogger().setLevel(logging.INFO)
+        LOGGER.disabled = False
+        LOGGER.propagate = True
+        LOGGER.setLevel(logging.INFO)
 
     generation_kwargs = {
         "max_length": args.max_passage_length,

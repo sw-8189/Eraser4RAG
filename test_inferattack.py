@@ -210,6 +210,25 @@ def main(args: argparse.Namespace) -> dict[str, float | int]:
     if record_count == 0:
         logger.warning("No records with non-empty privacy references were evaluated")
     logger.info("Inference-attack evaluation: %s", result)
+    if args.output_json:
+        output_path = Path(args.output_json)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "schema": "eraser4rag-evaluation-v1",
+            "evaluator": "test_inferattack.py",
+            "data_path": str(Path(args.data_path).resolve()),
+            "relik_model": args.relik_model,
+            "device": args.device,
+            "use_nme": args.use_nme,
+            "batch_size": args.batch_size,
+            "seed": args.seed,
+            "max_samples": args.max_samples,
+            "metrics": result,
+        }
+        with output_path.open("w", encoding="utf-8") as fout:
+            json.dump(payload, fout, ensure_ascii=False, indent=2, sort_keys=True)
+            fout.write("\n")
+        logger.info("Saved evaluation JSON to %s", output_path)
     return result
 
 
@@ -238,6 +257,13 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Maximum input records; replaces the released fixed record cap",
+    )
+    parser.add_argument(
+        "--output_json",
+        "--output-json",
+        dest="output_json",
+        default=None,
+        help="Optional machine-readable metrics output path",
     )
     return parser
 
