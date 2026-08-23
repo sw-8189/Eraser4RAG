@@ -2,7 +2,7 @@
 
 本仓库整理了 Eraser4RAG（*Learning to Erase Private Knowledge from Multi-Documents for Retrieval-Augmented Large Language Models*）的可运行代码、固定依赖、AutoDL 运行流程，以及一次已经完成的 PopQA + HotpotQA 两数据集核心复现实验结果。
 
-> **复现范围**：正式结果覆盖 PopQA 和 HotpotQA 两数据集的 SFT、PPO 与 ReLiK 指标评估；论文四数据集实验和下游 RAG QA 指标不在本次结果内。
+> **复现范围**：正式结果覆盖 PopQA 和 HotpotQA 两数据集的 SFT、PPO 与 ReLiK 指标评估。
 
 ## 当前交付内容
 
@@ -12,8 +12,7 @@
 - [`docs/REPRODUCTION_DEVIATIONS.md`](docs/REPRODUCTION_DEVIATIONS.md)：中文说明论文、作者代码与本次实验之间的数据和实现差异。
 - `results/two_dataset_b8_3000/` 中从 AutoDL 导出的正式指标、运行 manifest、训练曲线、ReLiK 三元组和最终改写压缩文件。
 - `results/popqa_sft_only/` 中已有 SFT checkpoint 的 PopQA-only 对照评估、六项指标、验证清单和压缩改写输出；该目录不再单独维护说明文档，结果摘要统一见本文“全部评价结果对比”章节。
-- `tests/` 中的单元和契约测试源码。测试源码是可复现性的一部分，pytest 缓存、测试输出和 smoke 产物不提交。
-
+- `tests/` 中的单元和契约测试源码。
 ## 目录说明
 
 ```text
@@ -27,11 +26,11 @@ utils/                    三元组、奖励和后处理工具
 results/                  脱敏结果、运行记录和重要中间产物
 ```
 
-`dataset/constructed_dataset/popqa_10_25_filtered_new.rar` 是 7.36 MiB 的正式 SFT 输入归档，可恢复解压后的 SFT JSONL。模型权重、checkpoint、缓存、日志、过程记录和可重建的大型 JSONL 由 `.gitignore` 排除。
+`dataset/constructed_dataset/popqa_10_25_filtered_new.rar` 是 7.36 MiB 的正式 SFT 输入归档，可恢复解压后的 SFT JSONL。
 
 ## 环境
 
-不要直接安装根目录的 `requirements.txt`：它是作者原始快照，Coreferee 与 ReLiK 的 spaCy 约束互相冲突。使用两个 Python 3.10.14 环境：
+不要直接安装根目录的 `requirements.txt`：Coreferee 与 ReLiK 的 spaCy 约束会互相冲突。使用两个 Python 3.10.14 环境：
 
 | 环境 | 用途 | 依赖文件 |
 | --- | --- | --- |
@@ -48,7 +47,6 @@ cd Eraser4RAG
 git checkout main
 ```
 
-`main` 是当前交付分支；`reproduce-v2` 保留提交历史和同一份可运行代码。若只复现实验，建议使用 `main`。
 
 在 AutoDL 上建议把 Conda 环境、HF cache、临时目录和模型放到 `/root/autodl-tmp`，不要占满系统盘。安装完成后先执行：
 
@@ -57,7 +55,6 @@ python scripts/check_environment.py --mode main --cpu-only
 python -m pytest -q
 ```
 
-切换到有 GPU 的实例后，再执行 `python scripts/check_environment.py --mode main` 和 Coreferee 的完整 pipeline 检查。无卡模式适合下载、解压、版本检查和静态测试；完整 Coreferee、SFT、ReLiK、PPO 和评估需要 GPU 实例（Coreferee 本身主要占 CPU/RAM，但无卡容器通常只有 2 GiB 内存）。
 
 ## 数据恢复和前处理
 
@@ -145,18 +142,9 @@ screen -ls
 tail -f logs/evaluation/two_dataset_b8_3000/*
 ```
 
-已完成实验在云端使用的 PPO 路径是 `output_checkpoint/RL-two-dataset-b8-3000/step_final`。若直接复用该 checkpoint 重新评估，应显式指定：
-
-```bash
-FINAL_CHECKPOINT=/root/autodl-tmp/Eraser4RAG/output_checkpoint/RL-two-dataset-b8-3000/step_final \
-  screen -dmS eraser-eval-two bash scripts/run_two_dataset_eval.sh
-```
-
-其中 `test_special.py` 是 retention 指标入口，`test_inferattack.py` 是 connectivity 指标入口；二者支持 `--output-json`，输出的机器可读结果默认写到被忽略的 `outputs/evaluation/.../metrics/`。
-
 ## 全部评价结果对比
 
-下表把已有 SFT checkpoint 的 PopQA-only 对照和以 SFT 为初始化、继续进行 PPO 的两数据集实验放在一起。`r_pub` 越高表示公共知识保留越多，`r_pri` 越低表示私有知识残留越少；`r_connect` 越低表示推断攻击中的私有三元组越不容易连通。只有相同数据集、相同评估子集和相同有效分母的行适合直接比较。
+下表把已有 SFT checkpoint 的 PopQA-only 对照和以 SFT 为初始化、继续进行 PPO 的两数据集实验放在一起。`r_pub` 越高表示公共知识保留越多，`r_pri` 越低表示私有知识残留越少；`r_connect` 越低表示推断攻击中的私有三元组越不容易连通。注意：只有相同数据集、相同评估子集和相同有效分母的行适合直接比较。
 
 | 训练阶段 | 数据集 | 评估子集 | 记录数 / 有效分母 | `r_pub` | `r_pri` | `r_connect` macro | `r_connect` micro |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: |
@@ -172,33 +160,14 @@ FINAL_CHECKPOINT=/root/autodl-tmp/Eraser4RAG/output_checkpoint/RL-two-dataset-b8
 
 SFT-only 只评估 PopQA，未重新训练 SFT、未运行 PPO，也未处理 HotpotQA；因此 HotpotQA 没有 SFT-only 对照行。六项 SFT-only 指标的原始 JSON 在 `results/popqa_sft_only/metrics/`，三份改写 JSONL 以 gzip 形式保存在 `results/popqa_sft_only/artifacts/rewritten/`，记录数与解压后 SHA-256 清单在 `results/popqa_sft_only/manifests/rewritten_outputs.json`。
 
-本次结果来自 AutoDL 项目 `/root/autodl-tmp/Eraser4RAG`，运行时 Git 提交为 `b11c998ee9aae0105ad34c6f3f0f5c77a37ce421`，设备为 48 GiB RTX 4090，随机种子为 42，ReLiK 使用 CUDA。SFT checkpoint 不提交到 Git；模型文件 SHA-256 为 `50401656cdf284a404f48f806cdca79e4d73ca2c795d6ac5ae7a9984dce70e9d`，配置文件 SHA-256 为 `b64f112c4ace1990c3ba1c9da7731c1b09509bf70a42c883795d23055115c15c`。
+本次结果来自 AutoDL 项目 `/root/autodl-tmp/Eraser4RAG`，运行时 Git 提交为 `b11c998ee9aae0105ad34c6f3f0f5c77a37ce421`，设备为 48 GiB RTX 4090，随机种子为 42，ReLiK 使用 CUDA。模型文件 SHA-256 为 `50401656cdf284a404f48f806cdca79e4d73ca2c795d6ac5ae7a9984dce70e9d`，配置文件 SHA-256 为 `b64f112c4ace1990c3ba1c9da7731c1b09509bf70a42c883795d23055115c15c`。
 
-SFT-only 产物校验命令：
-
-```bash
-python scripts/verify_result_artifacts.py \
-  --artifact-dir results/popqa_sft_only/artifacts/rewritten \
-  --manifest results/popqa_sft_only/manifests/rewritten_outputs.json
-```
-
-在 AutoDL 评估完成、或已把未压缩 JSONL 和 checkpoint 放回本地后，再运行严格的
-三份 JSONL/指标校验：
-
-```bash
-python scripts/validate_popqa_sft_only_eval.py \
-  --rewrite-root outputs/local_artifacts/popqa_sft_only/rewritten \
-  --metric-root results/popqa_sft_only/metrics \
-  --output outputs/local_artifacts/popqa_sft_only/validation.json \
-  --manifest outputs/local_artifacts/popqa_sft_only/run_manifest.json \
-  --checkpoint output_checkpoint/SFT
-```
 
 ## 结果文件与验收
 
 完整的两数据集指标 JSON、运行 manifest、训练曲线、ReLiK 三元组和最终改写压缩文件见 [`results/two_dataset_b8_3000/README.md`](results/two_dataset_b8_3000/README.md) 与 [`results/two_dataset_b8_3000/metrics.json`](results/two_dataset_b8_3000/metrics.json)。上面的统一表是所有已完成评价结果的汇总，机器可读文件仍按训练阶段分别保存，避免覆盖或混淆原始产物。
 
-最终 PPO `step_final/model.safetensors` 的 SHA-256 为 `489453a9d640e4914462fa7bd2e221bff274b956fc0390e7413ee54f8920569f`。权重不进入 Git，四个 ReLiK 三元组、六个最终改写、六个原始指标 JSON、运行 manifest 和 3,000 步训练曲线已收入结果目录。
+最终 PPO `step_final/model.safetensors` 的 SHA-256 为 `489453a9d640e4914462fa7bd2e221bff274b956fc0390e7413ee54f8920569f`。四个 ReLiK 三元组、六个最终改写、六个原始指标 JSON、运行 manifest 和 3,000 步训练曲线已收入结果目录。
 
 ## 验证
 
@@ -217,7 +186,7 @@ python scripts/verify_result_artifacts.py \
 git diff --check
 ```
 
-模型、checkpoint、缓存、完整日志和过程记录不进入 Git。算法与数据处理差异见 [`docs/REPRODUCTION_DEVIATIONS.md`](docs/REPRODUCTION_DEVIATIONS.md)。
+算法与数据处理差异见 [`docs/REPRODUCTION_DEVIATIONS.md`](docs/REPRODUCTION_DEVIATIONS.md)。
 
 ## 参考
 
