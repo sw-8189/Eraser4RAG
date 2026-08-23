@@ -2,6 +2,8 @@
 
 本目录来自 AutoDL 持久盘上的正式 SFT、PPO 和评估产物。提交前只做了绝对路径脱敏，没有改动指标、训练记录、样本数或哈希值。
 
+本目录只说明两数据集 PPO 核心复现。PopQA SFT-only 控制组的指标不在本目录重复，统一见仓库根目录 `README.md` 的“SFT-only PopQA 对照”章节。
+
 ## 实验设置
 
 - 数据集：PopQA 和 HotpotQA。
