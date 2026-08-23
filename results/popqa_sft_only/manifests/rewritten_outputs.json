@@ -1,0 +1,27 @@
+{
+  "schema": "eraser4rag-compressed-jsonl-artifacts-v1",
+  "source": "outputs/local_artifacts/popqa_sft_only/rewritten",
+  "artifacts": [
+    {
+      "file": "popqa_eval.jsonl.gz",
+      "records": 1000,
+      "uncompressed_bytes": 81724582,
+      "compressed_bytes": 21091644,
+      "uncompressed_sha256": "17cefc6b31218104abc92ff5f57ff658981f59aaab3fd46365473414b549fd91"
+    },
+    {
+      "file": "popqa_special.jsonl.gz",
+      "records": 954,
+      "uncompressed_bytes": 68896911,
+      "compressed_bytes": 18125824,
+      "uncompressed_sha256": "210008cd4152cc5a55a52df38d17adfd69676f471c9b480c042e55e5f710fb50"
+    },
+    {
+      "file": "popqa_inferattack.jsonl.gz",
+      "records": 167,
+      "uncompressed_bytes": 13939983,
+      "compressed_bytes": 4088594,
+      "uncompressed_sha256": "78c2a1a95a071e01c67e5a0f8717c575c591842150be1e69d957595d5e846a2c"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "batch_size": 8,
+  "data_path": "/root/autodl-tmp/Eraser4RAG/outputs/evaluation/popqa_sft_only/rewritten/popqa_special.jsonl",
+  "device": "cuda",
+  "evaluator": "test_special.py",
+  "max_samples": null,
+  "metrics": {
+    "documents": 6105,
+    "r_pri": 0.13822746121031607,
+    "r_pub": 0.2156079681563561,
+    "records": 954
+  },
+  "relik_model": "/root/autodl-tmp/Eraser4RAG/models/relik",
+  "schema": "eraser4rag-evaluation-v1",
+  "seed": 42,
+  "use_nme": true
+}

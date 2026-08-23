@@ -1,0 +1,50 @@
+{
+  "schema": "eraser4rag-popqa-sft-only-run-v1",
+  "evaluation": "PopQA SFT-only control",
+  "repo_root": "/root/autodl-tmp/Eraser4RAG",
+  "git_commit": "b11c998ee9aae0105ad34c6f3f0f5c77a37ce421",
+  "checkpoint": "/root/autodl-tmp/Eraser4RAG/output_checkpoint/SFT",
+  "checkpoint_model_sha256": "50401656cdf284a404f48f806cdca79e4d73ca2c795d6ac5ae7a9984dce70e9d",
+  "checkpoint_config_sha256": "b64f112c4ace1990c3ba1c9da7731c1b09509bf70a42c883795d23055115c15c",
+  "artifacts": {
+    "popqa_eval": {
+      "kind": "retention",
+      "rewrite_records": 1000,
+      "rewrite_sha256": "17cefc6b31218104abc92ff5f57ff658981f59aaab3fd46365473414b549fd91",
+      "metric_sha256": "79d2c9d0340b6718518eacc76a5e051f52091c78e06a2aea5da0be95e9440f3c",
+      "metrics": {
+        "documents": 10000,
+        "empty_private_reference": 2026,
+        "empty_public_reference": 330,
+        "r_pri": 0.11675180958773608,
+        "r_pub": 0.30325805115121696,
+        "records": 1000
+      }
+    },
+    "popqa_special": {
+      "kind": "retention",
+      "rewrite_records": 954,
+      "rewrite_sha256": "210008cd4152cc5a55a52df38d17adfd69676f471c9b480c042e55e5f710fb50",
+      "metric_sha256": "3321f627da7974fafa5cbbc54647c345093bf1323e6bbb7454ae48c695ed0b8a",
+      "metrics": {
+        "documents": 6105,
+        "r_pri": 0.13822746121031607,
+        "r_pub": 0.2156079681563561,
+        "records": 954
+      }
+    },
+    "popqa_inferattack": {
+      "kind": "connectivity",
+      "rewrite_records": 167,
+      "rewrite_sha256": "78c2a1a95a071e01c67e5a0f8717c575c591842150be1e69d957595d5e846a2c",
+      "metric_sha256": "1f1e0878b007b99fe304f578374a2df4f91bbe6d2a839a226af94b7eaab158ee",
+      "metrics": {
+        "connected_private_triples": 1872,
+        "private_triples": 21164,
+        "r_connect_macro": 0.13926657495270767,
+        "r_connect_micro": 0.08845208845208845,
+        "records": 167
+      }
+    }
+  }
+}
