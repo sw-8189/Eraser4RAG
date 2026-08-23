@@ -261,7 +261,37 @@ outputs/evaluation/two_dataset_b8_3000/metrics/{popqa,hotpotqa}_{eval,special,in
 
 launcher 会在写 `complete.txt` 前校验六个改写文件的记录数、有效分母和指标范围。
 
-## 13. 已完成云端产物
+## 13. SFT-only PopQA 对照评估
+
+该步骤只评估已经生成的 `output_checkpoint/SFT`，不重新训练 SFT、不启动 PPO，
+也不处理 HotpotQA。它用于得到 SFT 控制组的 PopQA `r_pub`、`r_pri` 和
+`r_connect` 六个数值。模型权重和 AutoDL 生成的未压缩 JSONL 不进入 Git；
+仓库中的压缩结果和指标清单位于 `results/popqa_sft_only/`。
+
+在已有 GPU 环境中执行：
+
+```bash
+screen -dmS eraser-popqa-sft-only bash scripts/run_popqa_sft_only_eval.sh
+screen -ls
+tail -f logs/evaluation/popqa_sft_only/run.log
+```
+
+完成后检查：
+
+```bash
+test -s outputs/evaluation/popqa_sft_only/metrics/complete.txt
+python scripts/validate_popqa_sft_only_eval.py \
+  --rewrite-root outputs/evaluation/popqa_sft_only/rewritten \
+  --metric-root outputs/evaluation/popqa_sft_only/metrics \
+  --output outputs/evaluation/popqa_sft_only/metrics/validation.json \
+  --manifest outputs/evaluation/popqa_sft_only/run_manifest.json \
+  --checkpoint output_checkpoint/SFT
+```
+
+结果摘要、六项指标和 checkpoint 哈希统一记录在仓库根目录 `README.md` 的
+“SFT-only PopQA 对照”章节；本目录不重复维护结果表。
+
+## 14. 已完成云端产物
 
 云端项目根目录为 `/root/autodl-tmp/Eraser4RAG`，正式产物位置如下：
 
@@ -277,7 +307,7 @@ launcher 会在写 `complete.txt` 前校验六个改写文件的记录数、有�
 
 其脱敏副本、训练曲线、ReLiK 三元组和最终改写压缩文件位于仓库的 `results/two_dataset_b8_3000/`。
 
-## 14. 会话与关机
+## 15. 会话与关机
 
 - SSH、浏览器或 VS Code 断开不会终止 `screen` 中的任务。
 - AutoDL 关机或释放实例会终止正在运行的进程。
@@ -293,7 +323,7 @@ screen -r eraser-ppo-two
 # 在 screen 内按 Ctrl+A，再按 D，可退出但不终止任务
 ```
 
-## 15. 最终检查
+## 16. 最终检查
 
 ```bash
 python -m pytest -q
