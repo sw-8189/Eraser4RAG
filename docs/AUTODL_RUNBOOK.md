@@ -289,7 +289,7 @@ python scripts/validate_popqa_sft_only_eval.py \
 ```
 
 结果摘要、六项指标和 checkpoint 哈希统一记录在仓库根目录 `README.md` 的
-“SFT-only PopQA 对照”章节；本目录不重复维护结果表。
+“全部评价结果对比”章节；本目录不重复维护结果表。
 
 ## 14. 已完成云端产物
 
