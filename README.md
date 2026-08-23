@@ -11,6 +11,7 @@
 - [`docs/AUTODL_RUNBOOK.md`](docs/AUTODL_RUNBOOK.md)：中文 AutoDL 环境、运行、监控和验收手册。
 - [`docs/REPRODUCTION_DEVIATIONS.md`](docs/REPRODUCTION_DEVIATIONS.md)：中文说明论文、作者代码与本次实验之间的数据和实现差异。
 - `results/two_dataset_b8_3000/` 中从 AutoDL 导出的正式指标、运行 manifest、训练曲线、ReLiK 三元组和最终改写压缩文件。
+- `results/popqa_sft_only/` 中已有 SFT checkpoint 的 PopQA-only 对照评估、六项指标、验证清单和压缩改写输出。
 - `tests/` 中的单元和契约测试源码。测试源码是可复现性的一部分，pytest 缓存、测试输出和 smoke 产物不提交。
 
 ## 目录说明
@@ -156,6 +157,8 @@ FINAL_CHECKPOINT=/root/autodl-tmp/Eraser4RAG/output_checkpoint/RL-two-dataset-b8
 ## 已完成结果
 
 完整的脱敏结果表和 JSON 见 [`results/two_dataset_b8_3000/README.md`](results/two_dataset_b8_3000/README.md) 与 [`results/two_dataset_b8_3000/metrics.json`](results/two_dataset_b8_3000/metrics.json)。核心数值如下：
+
+SFT-only 控制组的 PopQA 结果见 [`results/popqa_sft_only/README.md`](results/popqa_sft_only/README.md)。该控制组只评估已有 SFT checkpoint，不包含 HotpotQA、重新 SFT 或 PPO。
 
 | 子集 | `r_pub` | `r_pri` | `r_connect` |
 | --- | ---: | ---: | ---: |

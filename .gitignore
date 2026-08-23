@@ -25,6 +25,7 @@ Thumbs.db
 # Local planning, machine-specific reports, and intermediate research notes
 # (never publish)
 /plan/
+/attachments/
 
 # Model caches, weights, checkpoints, and experiment tracking
 models/
