@@ -71,7 +71,7 @@ held-out、`D_special` 和 inference-attack 是三个不同分母的评估集，
 - 固定 50/500 样本 ReLiK 一致性门禁均通过；500 样本公有/私有 micro recall 为 `0.9536/0.9653`。
 - PPO 使用每个数据集 5,000 条训练记录，过滤并展平为 41,284 个样例；batch 8、mini-batch 4、4 PPO epochs、学习率 `1e-5`、`gamma=0.99`，完成 3,000 个 outer steps。
 - 最终 checkpoint 和六项 final-policy ReLiK 评估均完成；权重 SHA-256 为 `489453a9d640e4914462fa7bd2e221bff274b956fc0390e7413ee54f8920569f`。
-- 另外使用同一 AutoDL 环境直接评估了已有的 PopQA SFT checkpoint，作为不含 PPO 的 SFT-only 控制组；该对照不处理 HotpotQA，六项指标和哈希统一记录在仓库根目录 `README.md` 的“SFT-only PopQA 对照”章节。
+- 另外使用同一 AutoDL 环境直接评估了已有的 PopQA SFT checkpoint，作为不含 PPO 的 SFT-only 控制组；该对照不处理 HotpotQA，六项指标和哈希统一记录在仓库根目录 `README.md` 的“全部评价结果对比”章节。
 
 | 数据/子集 | `r_pub` | `r_pri` | `r_connect` |
 | --- | ---: | ---: | ---: |
